@@ -15,8 +15,6 @@ Each skill is a Markdown file with YAML front matter (`name`, `description`) fol
 | Skill | Description |
 |-------|-------------|
 | [c14](skills/c14/SKILL.md) | Personal c14-* script launcher — discover and run scripts in `~/.local/bin` |
-| [gh-cli](.agents/skills/gh-cli/SKILL.md) | GitHub CLI helper — interact with GitHub repos, PRs, issues via `gh` |
-
 ## Install
 
 ```bash
