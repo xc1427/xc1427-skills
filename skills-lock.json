@@ -1,14 +1,17 @@
 {
-  "version": 1,
+  "version": 3,
   "skills": {
     "c14": {
-      "source": "local",
-      "sourceType": "local"
+      "source": "xc1427/xc1427-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/xc1427/xc1427-skills.git",
+      "skillPath": "skills/c14/SKILL.md"
     },
     "gh-cli": {
-      "source": "github/awesome-copilot",
+      "source": "xc1427/xc1427-skills",
       "sourceType": "github",
-      "computedHash": "cbe644b0c6760ae2a1eaafa39133920d889331327065d92a131675a665273e56"
+      "sourceUrl": "https://github.com/xc1427/xc1427-skills.git",
+      "skillPath": "skills/gh-cli/SKILL.md"
     }
   }
 }
