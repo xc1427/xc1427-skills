@@ -9,7 +9,7 @@ You are running the c14 personal script launcher. Follow these steps exactly:
 
 Run this command:
 ```bash
-for f in $HOME/.local/bin/c14-*; do
+for f in "$HOME/.local/bin"/c14-*; do
   name=$(basename "$f")
   desc=$(grep -m1 '^# DESC:' "$f" 2>/dev/null | sed 's/^# DESC: *//')
   echo "$name:::${desc:-no description}"
