@@ -7,11 +7,5 @@
       "sourceUrl": "https://github.com/xc1427/xc1427-skills.git",
       "skillPath": "skills/c14/SKILL.md"
     },
-    "gh-cli": {
-      "source": "xc1427/xc1427-skills",
-      "sourceType": "github",
-      "sourceUrl": "https://github.com/xc1427/xc1427-skills.git",
-      "skillPath": "skills/gh-cli/SKILL.md"
-    }
   }
 }
