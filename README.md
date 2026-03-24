@@ -1,6 +1,6 @@
 # xc1427-skills
 
-Personal Claude Code agent skills repository, compatible with the `npm skills` skill manager.
+Personal agent skills repository, compatible with the `npm skills` skill manager.
 
 ## Structure
 
