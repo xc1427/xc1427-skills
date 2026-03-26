@@ -22,7 +22,7 @@ Run this command to collect each script's metadata:
 for f in "$HOME/.local/bin"/c14-*; do
   [ -x "$f" ] || continue
   name=$(basename "$f")
-  desc=$(grep -m1 '^# DESC:' "$f" 2>/dev/null | sed 's/^# DESC: *//')
+  desc=$(grep -m1 -E '^(#|//) DESC:' "$f" 2>/dev/null | sed 's|^[#/]* *DESC: *||')
   echo "$name|||${desc:-no description}"
 done
 ```
@@ -73,16 +73,23 @@ Examples: `c14-backup-dotfiles`, `c14-clean-nodemodules`, `c14-sync-notes`
 
 ### Required header block
 
-Every c14 script must start with this header (adapt values, keep the keys exact):
+Every c14 script must include a `DESC` comment on line 2 (right after the shebang). The launcher discovers it with `grep -E '^(#|//) DESC:'`, so both `#` and `//` comment styles are supported.
 
+**Bash / shell scripts:**
 ```bash
 #!/usr/bin/env bash
 # DESC: One-line human-readable description of what this script does
 set -euo pipefail
 ```
 
+**Node.js scripts:**
+```js
+#!/usr/bin/env node
+// DESC: One-line human-readable description of what this script does
+```
+
 - `DESC` is displayed in the launcher menu — keep it under ~70 characters.
-- `set -euo pipefail` is mandatory — it makes the script fail fast on errors, unset variables, and broken pipes.
+- For bash scripts, `set -euo pipefail` is mandatory — it makes the script fail fast on errors, unset variables, and broken pipes.
 - Argument requirements are inferred by the AI from the script body itself — use clear patterns like `${1:?Usage: c14-foo <arg>}` or a usage block so the AI can read them correctly.
 
 ### Body conventions
