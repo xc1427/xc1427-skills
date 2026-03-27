@@ -3,19 +3,36 @@ name: c14-git-worktree
 description: Git worktree 管理参考手册。当用户明确要求操作 worktree（创建、删除、查看）时触发。
 ---
 
+
 ## 工作原理（Claude Code 集成）
 
 用户运行 `c -w`（即 `claude -w`）时的完整流程：
 
 1. Claude Code 调用内置的 `EnterWorktree` 工具，传入一个 `name`
-2. 触发 `WorktreeCreate` hook（`~/.claude/hooks/worktree.sh`）
+2. 触发 `WorktreeCreate` hook
 3. Hook 在**主仓库同级目录**创建 worktree：`../<project>-<name>/`，分支：`worktree-<name>`，base 为当前分支
 4. Hook 自动复制 `.env`（如存在）到新 worktree
 5. Claude 的工作目录切换到新 worktree
 
 **幂等性**：若目标目录或分支已存在，hook 会自动复用，不报错。
 
-`WorktreeRemove` hook 已**禁用** — 会话退出时不会自动删除 worktree，需手动清理。
+`WorktreeRemove` hook 按照预期应该**不配置** — 会话退出时不会自动删除 worktree，需手动清理。
+
+使用本技能依赖于用户已经在 ~/.claude/settings.json 中正确配置了如下 hooks。
+```
+"WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/worktree.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+```
+且 `~/.claude/hooks/worktree.sh` 存在且具有可执行权限。该 hook 负责创建 git worktree，并确保幂等性。如果不存在，可以拷贝该目录下的 `scripts/worktree.sh` 到该位置。
 
 ---
 
