@@ -1,5 +1,5 @@
 ---
-name: git-worktree
+name: c14-git-worktree
 description: Git worktree 管理参考手册。当用户明确要求操作 worktree（创建、删除、查看）时触发。
 ---
 
