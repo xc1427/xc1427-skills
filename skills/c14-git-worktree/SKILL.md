@@ -95,6 +95,43 @@ git worktree list
 
 ---
 
+### 同步提交 (Sync Commits)
+
+在并行开发时，父分支和各 worktree 分支之间的提交往往需要同步。`git-worktree-sync.sh` 脚本自动检测方向并通过 merge 完成同步。
+
+**方向自动判断：**
+- 当前在 `worktree-*` 分支 → **UP**：将当前 worktree 的提交合并到父分支
+- 当前在其他分支（父分支）→ **DOWN**：将父分支的新提交合并到所有 `worktree-*` 分支
+
+**特性：**
+- 执行前先用 `git merge-tree --write-tree` 进行 dry-run 检测
+- 有冲突的目标分支自动跳过，输出详细的手动解决步骤
+- 无冲突的目标分支正常执行 merge
+
+**调用方式：**
+```bash
+bash <skill-base-dir>/scripts/git-worktree-sync.sh
+
+# 如果父分支无法从 reflog 自动检测，可手动指定：
+bash <skill-base-dir>/scripts/git-worktree-sync.sh --father main
+```
+
+**你（Claude）可以直接代为执行**，无需用户确认——除非有合并冲突（此时脚本只会跳过冲突项并打印解决步骤，不会修改任何文件）。
+
+**冲突处理输出示例：**
+```
+❌ worktree-feat-auth: dry-run detected conflicts — skipped
+   To resolve manually:
+     cd ../yourproject-feat-auth
+     git merge main
+     git mergetool   # or open conflicted files in your editor
+     git merge --continue
+```
+
+**需求 git ≥ 2.38**（`merge-tree --write-tree` 支持）。脚本会在启动时检查版本，不满足时提示升级命令。
+
+---
+
 ## 最佳实践
 
 - 用 `git worktree remove` 而非 `rm -rf`，前者会同步清理 git 内部跟踪。
