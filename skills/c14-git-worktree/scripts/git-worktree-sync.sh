@@ -182,8 +182,24 @@ _dry_run_ok() {
 
 _do_merge() {
   # Runs actual merge inside <worktree_path>: merges <source_branch> into HEAD.
+  # Outputs merge details (new commits or "already up to date").
+  # Returns 0 on success (including already-up-to-date), non-zero on failure.
   local wt_path="$1" source_branch="$2"
-  (cd "$wt_path" && git merge "$source_branch" --no-edit -q)
+  local before_sha after_sha merge_output
+  before_sha=$(cd "$wt_path" && git rev-parse HEAD)
+  merge_output=$(cd "$wt_path" && git merge "$source_branch" --no-edit 2>&1) || return $?
+  after_sha=$(cd "$wt_path" && git rev-parse HEAD)
+
+  if [ "$before_sha" = "$after_sha" ]; then
+    echo "     Already up to date — no new commits."
+  else
+    local new_commits
+    new_commits=$(cd "$wt_path" && git log --oneline "$before_sha..$after_sha" 2>/dev/null)
+    echo "     New commits merged:"
+    while IFS= read -r _commit_line; do
+      echo "       $_commit_line"
+    done <<< "$new_commits"
+  fi
 }
 
 _failure_hint() {
@@ -211,7 +227,7 @@ if [ "$DIRECTION" = "DOWN" ]; then
     if _dry_run_ok "$_branch" "$FATHER_BRANCH"; then
       echo "clean"
       if _do_merge "$_path" "$FATHER_BRANCH"; then
-        echo "  ✅ $_branch: merged successfully"
+        echo "  ✅ $_branch: sync complete"
         SYNCED=$((SYNCED + 1))
       else
         echo "  ❌ $_branch: merge failed unexpectedly after clean dry-run"
@@ -236,7 +252,7 @@ elif [ "$DIRECTION" = "UP" ]; then
   if _dry_run_ok "$FATHER_BRANCH" "$CURRENT_BRANCH"; then
     echo "clean"
     if _do_merge "$PRIMARY_PATH" "$CURRENT_BRANCH"; then
-      echo "  ✅ $FATHER_BRANCH: merged successfully"
+      echo "  ✅ $FATHER_BRANCH: sync complete"
       SYNCED=$((SYNCED + 1))
     else
       echo "  ❌ $FATHER_BRANCH: merge failed unexpectedly after clean dry-run"
