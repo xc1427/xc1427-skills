@@ -43,5 +43,10 @@ echo ""
 git worktree remove "$WORKTREE_PATH"
 echo "✓ worktree 已删除"
 
-git branch -D "$BRANCH_NAME" 2>/dev/null && echo "✓ 分支 $BRANCH_NAME 已删除" \
-  || echo "⚠ 分支 $BRANCH_NAME 不存在或删除失败"
+read -r -p "Delete branch '$BRANCH_NAME' as well? [y/N] " _reply
+if [[ "$_reply" =~ ^[Yy]$ ]]; then
+  git branch -D "$BRANCH_NAME" 2>/dev/null && echo "✓ 分支 $BRANCH_NAME 已删除" \
+    || echo "⚠ 分支 $BRANCH_NAME 不存在或删除失败"
+else
+  echo "⏭  Kept branch $BRANCH_NAME"
+fi
