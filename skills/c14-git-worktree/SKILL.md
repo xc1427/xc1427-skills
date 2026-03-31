@@ -132,6 +132,43 @@ bash <skill-base-dir>/scripts/git-worktree-sync.sh --father main
 
 ---
 
+### 安装脚本为系统命令（创建 symlink）
+
+以下是独立脚本，无需 agentic 上下文即可直接运行。可将它们 symlink 到 `~/.local/bin`，使其成为随时可用的系统命令。
+- `git-worktree-sync.sh`
+- `git-worktree-remove.sh`
+
+**当用户要求安装或创建 symlink 时，直接执行并汇报结果：**
+
+```bash
+SKILL_SCRIPTS="<skill-base-dir>/scripts"
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
+
+for script in git-worktree-sync.sh git-worktree-remove.sh; do
+  target="$BIN_DIR/c14-$script"
+  if ln -sf "$SKILL_SCRIPTS/$script" "$target"; then
+    echo "✅ symlink created: $target -> $SKILL_SCRIPTS/$script"
+  else
+    echo "❌ failed to create symlink for $script"
+  fi
+done
+```
+
+将 `<skill-base-dir>` 替换为技能加载时注入的实际路径（格式：`Base directory for this skill: <path>`）。
+
+**安装后**，用户可直接运行（前提是 `~/.local/bin` 在 `$PATH` 中）：
+```bash
+c14-git-worktree-sync.sh
+c14-git-worktree-remove.sh <worktree-path>
+```
+
+**你（Claude）应代为执行**，并在完成后汇报：
+- 每个 symlink 的创建结果（成功/失败）
+- symlink 位置（完整路径）及其指向的源文件
+
+---
+
 ## 最佳实践
 
 - 用 `git worktree remove` 而非 `rm -rf`，前者会同步清理 git 内部跟踪。
