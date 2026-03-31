@@ -56,9 +56,14 @@ Capture the PR URL from stdout.
 If `gh` is unavailable, print the compare URL instead:
 `https://github.com/<owner>/<repo>/compare/main...<CURRENT_BRANCH>?expand=1`
 
-## Step 7 — Report
+## Step 7 — Open the PR and report
 
-Summarise in ≤3 bullets:
+On success, open the PR URL in the default browser:
+```bash
+open "<PR_URL>"
+```
+
+Then summarise in ≤3 bullets:
 - Branch used
 - Commit made (message), if any
 - PR URL (clickable)
