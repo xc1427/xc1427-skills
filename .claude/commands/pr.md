@@ -41,7 +41,17 @@ git push -u origin HEAD
 
 If push fails, report the error and stop.
 
-## Step 6 — Create the PR via gh
+## Step 6 — Create or locate the PR via gh
+
+First check if a PR already exists for this branch:
+
+```bash
+gh pr view --json url,state -q '"\(.state) \(.url)"'
+```
+
+- If state is `MERGED`: the work is already done. Skip to Step 7 with the existing PR URL.
+- If state is `OPEN`: a PR is already open. Skip to Step 7 with the existing PR URL.
+- If the command errors (no PR found): create one:
 
 ```bash
 gh pr create \
