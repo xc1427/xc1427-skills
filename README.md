@@ -16,6 +16,7 @@ Each skill is a Markdown file with YAML front matter (`name`, `description`) fol
 |-------|-------------|
 | [c14](skills/c14/SKILL.md) | Personal c14-* script launcher — discover and run scripts in `~/.local/bin` |
 | [c14-git-worktree](skills/c14-git-worktree/SKILL.md) | Git worktree management — create, delete, sync commits across worktrees, and install standalone scripts to `~/.local/bin` |
+| [pr](skills/pr/SKILL.md) | Create a pull request — stage/commit any changes, push the feature branch, and open a PR against main with minimal input |
 ## Install
 
 ```bash
