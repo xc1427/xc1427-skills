@@ -10,11 +10,13 @@ description: Git worktree 管理参考手册。当用户明确要求操作 workt
 
 1. Claude Code 调用内置的 `EnterWorktree` 工具，传入一个 `name`
 2. 触发 `WorktreeCreate` hook
-3. Hook 在**主仓库同级目录**创建 worktree：`../<project>-<name>/`，分支：`worktree-<name>`，base 为当前分支
-4. Hook 自动复制 `.env`（如存在）到新 worktree
-5. Claude 的工作目录切换到新 worktree
+3. Hook 固定执行 `~/.claude/hooks/worktree.sh`
+4. `worktree.sh` 调用本技能目录下的 `scripts/git-worktree-create.sh`
+5. 创建 worktree 到**主仓库同级目录**：`../<project>-<name>/`，分支：`worktree-<name>`，base 为当前分支
+6. 自动复制 `.env`（如存在）到新 worktree
+7. Claude 的工作目录切换到新 worktree
 
-**幂等性**：若目标目录或分支已存在，hook 会自动复用，不报错。
+**幂等性**：若目标目录或分支已存在，创建脚本会自动复用，不报错。
 
 `WorktreeRemove` hook 按照预期应该**不配置** — 会话退出时不会自动删除 worktree，需手动清理。
 
@@ -32,7 +34,14 @@ description: Git worktree 管理参考手册。当用户明确要求操作 workt
       }
     ],
 ```
-且 `~/.claude/hooks/worktree.sh` 存在且具有可执行权限。该 hook 负责创建 git worktree，并确保幂等性。如果不存在，可以拷贝该目录下的 `scripts/worktree.sh` 到该位置。
+且 `~/.claude/hooks/worktree.sh` 存在且具有可执行权限。该 hook 负责解析 Claude 的 JSON payload，并调用本技能下的 `scripts/git-worktree-create.sh`。如果不存在，可以拷贝该目录下的 `scripts/worktree.sh` 到该位置。
+
+更推荐创建 symlink 而不是拷贝，这样本技能更新后 hook 会自动跟随更新：
+```bash
+mkdir -p "$HOME/.claude/hooks"
+ln -sf "<skill-base-dir>/scripts/worktree.sh" "$HOME/.claude/hooks/worktree.sh"
+chmod +x "<skill-base-dir>/scripts/worktree.sh"
+```
 
 ---
 
@@ -47,15 +56,15 @@ description: Git worktree 管理参考手册。当用户明确要求操作 workt
 c -w
 ```
 
-若需要你（Claude）在当前会话中创建 worktree 并切换过去，使用 `EnterWorktree` 工具，传入一个简短的 `name`（如 `feat-login`）。选择 `name` 时用连字符分隔的短语，不含 `worktree-` 前缀（hook 会自动加）。
+若需要你（Claude）在当前会话中创建 worktree 并切换过去，使用 `EnterWorktree` 工具，传入一个简短的 `name`（如 `feat-login`）。选择 `name` 时用连字符分隔的短语，不含 `worktree-` 前缀（创建脚本会自动加）。
 
-**手动 git 命令（不需要切换 Claude 工作目录时）：**
+**直接调用脚本（不需要切换 Claude 工作目录时）：**
 ```bash
 # 遵循命名约定：目录 ../<project>-<name>，分支 worktree-<name>
-git worktree add -b worktree-<name> ../<project>-<name>
+bash <skill-base-dir>/scripts/git-worktree-create.sh <name>
 
-# 若分支已存在（复用）：
-git worktree add ../<project>-<name> worktree-<name>
+# 例：
+bash <skill-base-dir>/scripts/git-worktree-create.sh feat-login
 ```
 
 除非用户明确要求，否则只提示命令，不代替执行。
@@ -135,6 +144,7 @@ bash <skill-base-dir>/scripts/git-worktree-sync.sh --father main
 ### 安装脚本为系统命令（创建 symlink）
 
 以下是独立脚本，无需 agentic 上下文即可直接运行。可将它们 symlink 到 `~/.local/bin`，使其成为随时可用的系统命令。
+- `git-worktree-create.sh`
 - `git-worktree-sync.sh`
 - `git-worktree-remove.sh`
 
@@ -145,7 +155,7 @@ SKILL_SCRIPTS="<skill-base-dir>/scripts"
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$BIN_DIR"
 
-for script in git-worktree-sync.sh git-worktree-remove.sh; do
+for script in git-worktree-create.sh git-worktree-sync.sh git-worktree-remove.sh; do
   target="$BIN_DIR/c14-$script"
   if ln -sf "$SKILL_SCRIPTS/$script" "$target"; then
     echo "✅ symlink created: $target -> $SKILL_SCRIPTS/$script"
@@ -161,6 +171,7 @@ done
 ```bash
 c14-git-worktree-sync.sh
 c14-git-worktree-remove.sh <worktree-path>
+c14-git-worktree-create.sh <name>
 ```
 
 **你（Claude）应代为执行**，并在完成后汇报：
