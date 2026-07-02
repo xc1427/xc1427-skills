@@ -3,9 +3,9 @@
 # git-worktree-sync.sh
 #
 # Syncs commits between the "father" branch and worktree-* branches using merge.
-# Direction is auto-detected from the current branch:
-#   - On a worktree-* branch → sync UP to father
-#   - On any other branch   → sync DOWN to all worktree-* branches
+# Direction is auto-detected from the current checkout kind:
+#   - In the primary worktree → sync DOWN to all worktree-* branches
+#   - In a linked worktree    → sync UP to father
 #
 # A dry-run is performed first via `git merge-tree --write-tree`. Targets that
 # would produce conflicts are skipped and reported; clean targets are merged.
@@ -67,6 +67,14 @@ if [ "$GIT_MAJOR" -lt 2 ] || { [ "$GIT_MAJOR" -eq 2 ] && [ "$GIT_MINOR" -lt 38 ]
   exit 1
 fi
 
+GIT_DIR_ABS=$(git rev-parse --path-format=absolute --git-dir)
+COMMON_DIR_ABS=$(git rev-parse --path-format=absolute --git-common-dir)
+if [ "$GIT_DIR_ABS" = "$COMMON_DIR_ABS" ]; then
+  CURRENT_WORKTREE_KIND="primary"
+else
+  CURRENT_WORKTREE_KIND="linked"
+fi
+
 # ─── Worktree parsing ─────────────────────────────────────────────────────────
 
 # Parse `git worktree list --porcelain` into parallel arrays.
@@ -117,10 +125,10 @@ done
 
 # ─── Direction + father detection ─────────────────────────────────────────────
 
-if [[ "$CURRENT_BRANCH" == worktree-* ]]; then
-  DIRECTION="UP"
-else
+if [ "$CURRENT_WORKTREE_KIND" = "primary" ]; then
   DIRECTION="DOWN"
+else
+  DIRECTION="UP"
 fi
 
 if [ -n "$FATHER_OVERRIDE" ]; then
