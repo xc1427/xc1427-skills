@@ -12,7 +12,7 @@ description: Git worktree 管理参考手册。当用户明确要求操作 workt
 2. 触发 `WorktreeCreate` hook
 3. Hook 固定执行 `~/.claude/hooks/worktree.sh`
 4. `worktree.sh` 调用本技能目录下的 `scripts/git-worktree-create.sh`
-5. 创建 worktree 到**主仓库同级目录**：`../<project>-<name>/`，分支：`worktree-<name>`，base 为当前分支
+5. 创建 worktree 到**当前 checkout 同级目录**：`../<current-checkout>-<name>/`，分支：`worktree-<name>`，base 为当前分支
 6. 自动复制 `.env`（如存在）到新 worktree
 7. Claude 的工作目录切换到新 worktree
 
@@ -84,7 +84,9 @@ bash <skill-base-dir>/scripts/git-worktree-remove.sh <worktree-path>
 bash <skill-base-dir>/scripts/git-worktree-remove.sh ../myproject-feat-x
 ```
 
-脚本逻辑：从目录名 `<project>-<name>` 推导出分支名 `worktree-<name>`，调用 `git worktree remove` 后再 `git branch -D`。
+脚本逻辑：按传入路径在 `git worktree list --porcelain` 中反查真实登记项，读取该 worktree 当前 checkout 的本地分支，再调用 `git worktree remove`。如果该分支是 c14 创建约定下的 `worktree-*` 分支，且删除 worktree 后不再被其他 worktree 使用，会继续执行 `git branch -D` 清理分支。
+
+这个删除逻辑不从目录名推导分支名，也不关心 worktree 是从 primary checkout 还是某个 linked worktree 创建出来的。Git 视角下所有 linked worktree 都按同一个 repository 的平级登记项处理，所以类似 `figo-browser-parallel-work-debug-device-simulation` 这样的路径会删除其真实分支 `worktree-debug-device-simulation`，不会误推导成 `worktree-parallel-work-debug-device-simulation`。
 
 **你可以直接代为执行**删除操作，无需用户确认（除非 worktree 有未提交的改动）。
 
@@ -109,13 +111,14 @@ git worktree list
 在并行开发时，父分支和各 worktree 分支之间的提交往往需要同步。`git-worktree-sync.sh` 脚本自动检测方向并通过 merge 完成同步。
 
 **方向自动判断：**
-- 当前在 `worktree-*` 分支 → **UP**：将当前 worktree 的提交合并到父分支
-- 当前在其他分支（父分支）→ **DOWN**：将父分支的新提交合并到所有 `worktree-*` 分支
+- 当前 checkout 是 primary worktree → **DOWN**：将当前分支的新提交合并到所有已登记的 `worktree-*` linked worktree 分支
+- 当前 checkout 是 linked worktree → **UP**：将当前 linked worktree 的提交合并到父分支
 
 **特性：**
 - 执行前先用 `git merge-tree --write-tree` 进行 dry-run 检测
 - 有冲突的目标分支自动跳过，输出详细的手动解决步骤
 - 无冲突的目标分支正常执行 merge
+- 方向判断基于 Git 的 worktree 元信息（`--git-dir` 与 `--git-common-dir`），不依赖当前分支是否以 `worktree-` 开头；因此 primary worktree 上的主分支即使误用 `worktree-*` 命名，也仍会走 DOWN。
 
 **调用方式：**
 ```bash
