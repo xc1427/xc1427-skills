@@ -117,6 +117,7 @@ git worktree list
 **特性：**
 - 执行前先用 `git merge-tree --write-tree` 进行 dry-run 检测
 - 有冲突的目标分支自动跳过，输出详细的手动解决步骤
+- 发生冲突时，额外输出一段更短的英文 prompt，用户可整段复制给 coding agent；prompt 会优先建议在待处理的 worktree 分支里先 merge father
 - 无冲突的目标分支正常执行 merge
 - 方向判断基于 Git 的 worktree 元信息（`--git-dir` 与 `--git-common-dir`），不依赖当前分支是否以 `worktree-` 开头；因此 primary worktree 上的主分支即使误用 `worktree-*` 命名，也仍会走 DOWN。
 
@@ -139,6 +140,8 @@ bash <skill-base-dir>/scripts/git-worktree-sync.sh --father main
      git mergetool   # or open conflicted files in your editor
      git merge --continue
 ```
+
+随后脚本还会追加一个带明确起止标记的英文文本块（`BEGIN/END CODING AGENT PROMPT`）。这段 prompt 会尽量短，同时保留 worktree 路径、当前待处理分支、father 分支、方向，以及建议先执行的 `git merge <father>` 命令。
 
 **需求 git ≥ 2.38**（`merge-tree --write-tree` 支持）。脚本会在启动时检查版本，不满足时提示升级命令。
 
