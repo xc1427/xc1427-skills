@@ -55,6 +55,7 @@ if [ "$CURRENT_BRANCH" = "HEAD" ]; then
   echo "Error: HEAD is detached. Check out a branch first." >&2
   exit 1
 fi
+CURRENT_WORKTREE_PATH=$(git rev-parse --show-toplevel)
 
 # Require git >= 2.38 for `git merge-tree --write-tree`
 GIT_VERSION=$(git --version | sed 's/git version //')
@@ -212,12 +213,49 @@ _do_merge() {
 
 _failure_hint() {
   local target_branch="$1" target_path="$2" source_branch="$3"
+  local resolve_path resolve_branch
+
+  if [ "$DIRECTION" = "UP" ]; then
+    resolve_path="$CURRENT_WORKTREE_PATH"
+    resolve_branch="$CURRENT_BRANCH"
+  else
+    resolve_path="$target_path"
+    resolve_branch="$target_branch"
+  fi
+
   echo "  ❌ $target_branch: dry-run detected conflicts — skipped"
   echo "     To resolve manually:"
-  echo "       cd $target_path"
-  echo "       git merge $source_branch"
+  echo "       cd \"$resolve_path\""
+  echo "       git merge $FATHER_BRANCH"
   echo "       git mergetool   # or open conflicted files in your editor"
   echo "       git merge --continue"
+  if [ "$DIRECTION" = "UP" ]; then
+    echo "       # rerun this sync command afterwards to update $FATHER_BRANCH"
+  fi
+  echo ""
+  _agent_prompt "$resolve_path" "$resolve_branch"
+}
+
+_agent_prompt() {
+  local resolve_path="$1" resolve_branch="$2"
+  local direction_label
+
+  if [ "$DIRECTION" = "DOWN" ]; then
+    direction_label="DOWN (father -> all worktrees)"
+  else
+    direction_label="UP (worktree -> father)"
+  fi
+
+  echo "🤖 Copy this to your coding agent:"
+  echo "----- BEGIN CODING AGENT PROMPT -----"
+  echo "Resolve this git worktree sync conflict for me."
+  echo "Worktree: ${resolve_path}"
+  echo "Current branch: ${resolve_branch}"
+  echo "Father branch: ${FATHER_BRANCH}"
+  echo "Direction: ${direction_label}"
+  echo "Start with: cd \"${resolve_path}\" && git merge ${FATHER_BRANCH}"
+  echo "After that, resolve the conflict on the current branch, verify the result, rerun the sync, and report which files conflicted plus any manual follow-up."
+  echo "----- END CODING AGENT PROMPT -----"
   echo ""
 }
 
