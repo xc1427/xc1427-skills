@@ -4,9 +4,15 @@ set -euo pipefail
 
 readonly bundled_node_repl="/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
 
-# Ambient telemetry 和 site_status 共用原生 privileged fetch；在这一层统一代理。
+# Required workaround: Browser ambient telemetry and site_status use the native
+# privileged-fetch path, which needs these explicit proxy variables.
 export HTTP_PROXY="http://127.0.0.1:7890"
 export HTTPS_PROXY="http://127.0.0.1:7890"
 export NO_PROXY="localhost,127.0.0.1,::1"
+
+# Defense in depth only: this makes Node's standard network clients, including
+# global fetch(), honor the same proxy when a current or future Node REPL workflow
+# needs remote access. It is not part of the Browser privileged-fetch timeout fix.
+export NODE_USE_ENV_PROXY=1
 
 exec "${bundled_node_repl}" "$@"
