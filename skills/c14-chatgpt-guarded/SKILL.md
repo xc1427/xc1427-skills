@@ -22,10 +22,19 @@ The installed native-helper wrapper owns the proxy environment:
 HTTP_PROXY=http://127.0.0.1:7890
 HTTPS_PROXY=http://127.0.0.1:7890
 NO_PROXY=localhost,127.0.0.1,::1
+NODE_USE_ENV_PROXY=1
 ```
 
-Do not restore the withdrawn `NODE_USE_ENV_PROXY`, Node-child wrapper,
-`BROWSER_USE_DISABLE_AMBIENT_NETWORK`, or `BROWSER_USE_SECURITY_MODE` experiments.
+The HTTP(S) proxy variables are the workaround for the observed Browser privileged-fetch
+timeout. `NODE_USE_ENV_PROXY=1` is a separate defense-in-depth setting: it makes Node's
+standard network clients, including global `fetch()`, honor the same proxy for current
+and future Node REPL workflows. Do not describe it as part of the original Browser fix.
+
+The wrapper applies to every Node REPL consumer, including Browser, Chrome control,
+Computer Use, and generic JavaScript helpers. Local traffic remains bypassed through
+`NO_PROXY`. Do not restore the withdrawn Node-child wrapper,
+`BROWSER_USE_DISABLE_AMBIENT_NETWORK`, `BROWSER_USE_SECURITY_MODE`, or
+`NODE_USE_SYSTEM_CA` experiments.
 
 ## Install or update
 
@@ -73,6 +82,8 @@ After installation:
    appears.
 4. On the next safe cold start, verify the generated `node_repl` command points to the
    installed wrapper and time an in-app Browser navigation.
+5. Verify a standalone bundled-Node `fetch()` reaches a proxy-required HTTPS endpoint
+   with the wrapper's environment, while localhost remains covered by `NO_PROXY`.
 
 ## Retirement
 

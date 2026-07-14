@@ -48,8 +48,11 @@ assert_contains "${source_file}" 'CODEX_NODE_REPL_PATH' "native-helper override 
 assert_contains "${source_file}" '"--noproxy", ""' "proxy probe must ignore inherited NO_PROXY"
 assert_contains "${wrapper_file}" 'export HTTP_PROXY="http://127.0.0.1:7890"' "HTTP proxy missing"
 assert_contains "${wrapper_file}" 'export HTTPS_PROXY="http://127.0.0.1:7890"' "HTTPS proxy missing"
+assert_contains "${wrapper_file}" 'export NO_PROXY="localhost,127.0.0.1,::1"' "local proxy bypass missing"
+assert_contains "${wrapper_file}" 'export NODE_USE_ENV_PROXY=1' "Node proxy robustness opt-in missing"
+assert_contains "${wrapper_file}" 'It is not part of the Browser privileged-fetch timeout fix.' "Node proxy robustness scope missing"
 
-if grep -Eq 'NODE_USE_ENV_PROXY|NODE_USE_SYSTEM_CA|BROWSER_USE_DISABLE_AMBIENT_NETWORK|BROWSER_USE_SECURITY_MODE' "${wrapper_file}"; then
+if grep -Eq 'NODE_USE_SYSTEM_CA|BROWSER_USE_DISABLE_AMBIENT_NETWORK|BROWSER_USE_SECURITY_MODE' "${wrapper_file}"; then
   fail "obsolete workaround variable found in native-helper wrapper"
 fi
 
