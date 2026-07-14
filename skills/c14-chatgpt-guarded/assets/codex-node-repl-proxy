@@ -1,0 +1,12 @@
+#!/bin/zsh
+
+set -euo pipefail
+
+readonly bundled_node_repl="/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
+
+# Ambient telemetry 和 site_status 共用原生 privileged fetch；在这一层统一代理。
+export HTTP_PROXY="http://127.0.0.1:7890"
+export HTTPS_PROXY="http://127.0.0.1:7890"
+export NO_PROXY="localhost,127.0.0.1,::1"
+
+exec "${bundled_node_repl}" "$@"
