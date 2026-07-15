@@ -61,15 +61,38 @@ When ChatGPT Guarded opens:
 1. If a correctly configured ChatGPT process is already running, activate it and exit.
 2. If ChatGPT is running without the expected helper path, offer to quit and relaunch it.
 3. Before a cold launch or relaunch, perform a bounded proxy check against
-   `https://ab.chatgpt.com/v1` through `127.0.0.1:7890`.
+   `https://ab.chatgpt.com/v1` through `127.0.0.1:7890`. Retry transient failures up
+   to three times with short backoff delays before reporting that the proxy is unavailable.
 4. Launch the original ChatGPT bundle with new-instance creation disabled.
 5. Verify the launched process received the expected helper path, then exit.
 
 The launcher is an `LSUIElement`, so it does not remain in the Dock or application
-switcher. Alfred's free application search can still launch the registered app. Once
-the original ChatGPT process is running correctly, opening either app activates the
-same ChatGPT process; opening the original app from a stopped state bypasses the
-workaround.
+switcher. It keeps the display name `ChatGPT Guarded` and registers `Codex Guarded` as
+an alternate application name, so Alfred's free default app search can find it using
+either name without a workflow. Once the original ChatGPT process is running correctly,
+opening either app activates the same ChatGPT process; opening the original app from a
+stopped state bypasses the workaround.
+
+## Diagnostics
+
+Every launcher invocation appends a local, line-oriented trace to:
+
+```text
+$HOME/Library/Logs/ChatGPT Guarded/launcher.log
+```
+
+The trace records launcher decisions, proxy attempt exit/HTTP status and timing,
+restart choices, process identifiers, final launch verification, and each scoped Node
+REPL wrapper startup. It does not dump the environment, command arguments, request or
+response bodies, credentials, or user content. Nothing is uploaded. Launcher events
+are capped at 2 KiB; the log rotates at 512 KiB and keeps one
+`launcher.previous.log` file.
+
+When diagnosing a launch problem, inspect the latest events with:
+
+```bash
+tail -n 100 "$HOME/Library/Logs/ChatGPT Guarded/launcher.log"
+```
 
 ## Verification
 
@@ -77,13 +100,17 @@ After installation:
 
 1. Check the app bundle identifier is `local.c14.chatgpt-guarded`.
 2. Check the app is ad-hoc signed and registered with LaunchServices.
-3. With a correctly configured ChatGPT process already running, open ChatGPT Guarded
+3. Check `mdls` reports `Codex Guarded` under `kMDItemAlternateNames`, refresh Alfred's
+   app cache with `reload`, and confirm `codex guarded` resolves to `ChatGPT Guarded`.
+4. With a correctly configured ChatGPT process already running, open ChatGPT Guarded
    and confirm the original ChatGPT PID does not change and no second ChatGPT process
    appears.
-4. On the next safe cold start, verify the generated `node_repl` command points to the
+5. On the next safe cold start, verify the generated `node_repl` command points to the
    installed wrapper and time an in-app Browser navigation.
-5. Verify a standalone bundled-Node `fetch()` reaches a proxy-required HTTPS endpoint
+6. Verify a standalone bundled-Node `fetch()` reaches a proxy-required HTTPS endpoint
    with the wrapper's environment, while localhost remains covered by `NO_PROXY`.
+7. Open ChatGPT Guarded and confirm `launcher.log` contains one session from
+   `launcher_start` through the final activation or failure decision.
 
 ## Retirement
 

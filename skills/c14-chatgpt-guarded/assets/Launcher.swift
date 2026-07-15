@@ -7,6 +7,14 @@ private let proxyURL = Bundle.main.object(forInfoDictionaryKey: "GuardedProxyURL
     ?? "http://127.0.0.1:7890"
 private let probeURL = Bundle.main.object(forInfoDictionaryKey: "GuardedProbeURL") as? String
     ?? "https://ab.chatgpt.com/v1"
+private let proxyProbeMaxAttempts = 3
+private let proxyProbeBackoff: [TimeInterval] = [0.4, 0.8]
+private let diagnosticLogDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
+    .appendingPathComponent("Library/Logs/ChatGPT Guarded", isDirectory: true)
+private let diagnosticLogURL = diagnosticLogDirectoryURL.appendingPathComponent("launcher.log")
+private let previousDiagnosticLogURL = diagnosticLogDirectoryURL
+    .appendingPathComponent("launcher.previous.log")
+private let maxDiagnosticLogSizeBytes: UInt64 = 512 * 1024
 private let nodeReplProxyURL = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent(".local/bin/codex-node-repl-proxy")
 private let expectedEnvironmentEntry = "CODEX_NODE_REPL_PATH=\(nodeReplProxyURL.path)"
@@ -15,6 +23,61 @@ private struct CommandResult {
     let status: Int32
     let output: String
     let error: String
+}
+
+private struct ProxyProbeSummary {
+    let result: CommandResult
+    let attempts: Int
+}
+
+private final class LauncherLog {
+    private let sessionID = String(UUID().uuidString.prefix(8))
+    private let timestampFormatter = ISO8601DateFormatter()
+
+    init() {
+        try? FileManager.default.createDirectory(
+            at: diagnosticLogDirectoryURL,
+            withIntermediateDirectories: true
+        )
+        rotateIfNeeded()
+    }
+
+    func write(_ event: String) {
+        rotateIfNeeded()
+        let singleLine = event
+            .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\n", with: "\\n")
+        let boundedEvent = String(singleLine.prefix(2048))
+        let line = "\(timestampFormatter.string(from: Date())) session=\(sessionID) \(boundedEvent)\n"
+        guard let data = line.data(using: .utf8) else { return }
+
+        if !FileManager.default.fileExists(atPath: diagnosticLogURL.path) {
+            try? data.write(to: diagnosticLogURL, options: .atomic)
+            return
+        }
+
+        guard let handle = try? FileHandle(forWritingTo: diagnosticLogURL) else { return }
+        handle.seekToEndOfFile()
+        handle.write(data)
+        handle.closeFile()
+    }
+
+    private func rotateIfNeeded() {
+        guard
+            let attributes = try? FileManager.default.attributesOfItem(atPath: diagnosticLogURL.path),
+            let size = attributes[.size] as? NSNumber,
+            size.uint64Value >= maxDiagnosticLogSizeBytes
+        else { return }
+
+        try? FileManager.default.removeItem(at: previousDiagnosticLogURL)
+        try? FileManager.default.moveItem(at: diagnosticLogURL, to: previousDiagnosticLogURL)
+    }
+}
+
+private let launcherLog = LauncherLog()
+
+private func trace(_ event: String) {
+    launcherLog.write(event)
 }
 
 private func runCommand(_ executable: String, _ arguments: [String]) -> CommandResult {
@@ -94,14 +157,60 @@ private func probeProxy() -> CommandResult {
     runCommand("/usr/bin/curl", [
         "--proxy", proxyURL,
         "--noproxy", "",
-        "--connect-timeout", "2",
-        "--max-time", "4",
+        "--connect-timeout", "1.5",
+        "--max-time", "3",
         "--silent",
         "--show-error",
         "--output", "/dev/null",
         "--write-out", "HTTP %{http_code} in %{time_total}s",
         probeURL,
     ])
+}
+
+private func proxyProbeSucceeded(_ result: CommandResult) -> Bool {
+    result.status == 0 && !result.output.contains("HTTP 000")
+}
+
+private func probeProxyWithRetry() -> ProxyProbeSummary {
+    for attempt in 1...proxyProbeMaxAttempts {
+        let result = probeProxy()
+        let output = result.output.isEmpty ? "-" : result.output
+        let error = result.error.isEmpty ? "-" : result.error
+        trace("proxy_probe attempt=\(attempt) exit=\(result.status) output=\(output) error=\(error)")
+        if proxyProbeSucceeded(result) || attempt == proxyProbeMaxAttempts {
+            return ProxyProbeSummary(result: result, attempts: attempt)
+        }
+
+        let delay = proxyProbeBackoff[min(attempt - 1, proxyProbeBackoff.count - 1)]
+        RunLoop.current.run(until: Date().addingTimeInterval(delay))
+    }
+
+    fatalError("Proxy probe retry loop did not execute")
+}
+
+private func ensureProxyAvailable() -> Bool {
+    let probe = probeProxyWithRetry()
+    guard proxyProbeSucceeded(probe.result) else {
+        trace("proxy_unavailable attempts=\(probe.attempts)")
+        let detail = probe.result.error.isEmpty ? probe.result.output : probe.result.error
+        let message = """
+        \(proxyURL) did not complete the HTTPS check after \(probe.attempts) attempts.
+
+        ChatGPT was not launched or restarted.
+
+        \(detail)
+
+        Diagnostic log: \(diagnosticLogURL.path)
+        """
+        showAlert(
+            title: "Proxy unavailable",
+            message: message,
+            style: .critical
+        )
+        return false
+    }
+    trace("proxy_available attempts=\(probe.attempts)")
+    return true
 }
 
 private func launchEnvironment() -> [String: String] {
@@ -157,6 +266,7 @@ private func launchChatGPT() -> Result<NSRunningApplication, Error> {
 
 private func validateInstallation() -> Bool {
     guard FileManager.default.fileExists(atPath: chatGPTURL.path) else {
+        trace("validation_failed reason=chatgpt_missing")
         showAlert(
             title: "ChatGPT is missing",
             message: "Expected to find the original app at \(chatGPTURL.path).",
@@ -165,6 +275,7 @@ private func validateInstallation() -> Bool {
         return false
     }
     guard FileManager.default.isExecutableFile(atPath: nodeReplProxyURL.path) else {
+        trace("validation_failed reason=node_repl_proxy_missing")
         showAlert(
             title: "Browser helper is missing",
             message: "Reinstall ChatGPT Guarded to restore \(nodeReplProxyURL.path).",
@@ -172,14 +283,21 @@ private func validateInstallation() -> Bool {
         )
         return false
     }
+    trace("validation_ok")
     return true
 }
 
 private func runLauncher() {
-    guard validateInstallation() else { return }
+    guard validateInstallation() else {
+        trace("launcher_stop reason=invalid_installation")
+        return
+    }
 
     if let current = runningChatGPT() {
-        if hasExpectedEnvironment(current) {
+        let isGuarded = hasExpectedEnvironment(current)
+        trace("chatgpt_detected pid=\(current.processIdentifier) guarded=\(isGuarded)")
+        if isGuarded {
+            trace("chatgpt_activate_existing pid=\(current.processIdentifier)")
             current.activate(options: [.activateAllWindows])
             return
         }
@@ -189,20 +307,17 @@ private func runLauncher() {
             message: "The running ChatGPT process does not have the Browser helper proxy. Quit and relaunch it now?",
             buttons: ["Quit and Relaunch", "Cancel"]
         )
-        guard response == .alertFirstButtonReturn else { return }
-
-        let probe = probeProxy()
-        guard probe.status == 0, !probe.output.contains("HTTP 000") else {
-            let detail = probe.error.isEmpty ? probe.output : probe.error
-            showAlert(
-                title: "Proxy unavailable",
-                message: "\(proxyURL) did not complete the HTTPS check.\n\n\(detail)",
-                style: .critical
-            )
+        guard response == .alertFirstButtonReturn else {
+            trace("restart_prompt canceled")
             return
         }
+        trace("restart_prompt approved")
 
+        guard ensureProxyAvailable() else { return }
+
+        trace("chatgpt_terminate_requested pid=\(current.processIdentifier)")
         guard current.terminate(), waitUntilChatGPTStops(timeout: 12) else {
+            trace("chatgpt_terminate_failed pid=\(current.processIdentifier)")
             showAlert(
                 title: "ChatGPT did not quit",
                 message: "Close ChatGPT completely, then open ChatGPT Guarded again.",
@@ -210,24 +325,20 @@ private func runLauncher() {
             )
             return
         }
+        trace("chatgpt_stopped pid=\(current.processIdentifier)")
     } else {
-        let probe = probeProxy()
-        guard probe.status == 0, !probe.output.contains("HTTP 000") else {
-            let detail = probe.error.isEmpty ? probe.output : probe.error
-            showAlert(
-                title: "Proxy unavailable",
-                message: "\(proxyURL) did not complete the HTTPS check.\n\n\(detail)",
-                style: .critical
-            )
-            return
-        }
+        trace("chatgpt_not_running")
+        guard ensureProxyAvailable() else { return }
     }
 
     switch launchChatGPT() {
     case .failure(let error):
+        trace("chatgpt_launch_failed error=\(error.localizedDescription)")
         showAlert(title: "ChatGPT did not start", message: error.localizedDescription, style: .critical)
     case .success(let launched):
+        trace("chatgpt_launched pid=\(launched.processIdentifier)")
         guard hasExpectedEnvironment(launched) else {
+            trace("chatgpt_verification_failed pid=\(launched.processIdentifier)")
             launched.terminate()
             showAlert(
                 title: "Guarded launch verification failed",
@@ -236,6 +347,7 @@ private func runLauncher() {
             )
             return
         }
+        trace("chatgpt_verification_ok pid=\(launched.processIdentifier)")
         launched.activate(options: [.activateAllWindows])
     }
 }
@@ -243,5 +355,9 @@ private func runLauncher() {
 let application = NSApplication.shared
 application.setActivationPolicy(.accessory)
 application.finishLaunching()
+let launcherVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+    ?? "unknown"
+trace("launcher_start version=\(launcherVersion) pid=\(ProcessInfo.processInfo.processIdentifier)")
 runLauncher()
+trace("launcher_exit")
 application.terminate(nil)

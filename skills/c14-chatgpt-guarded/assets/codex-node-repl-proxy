@@ -3,6 +3,15 @@
 set -euo pipefail
 
 readonly bundled_node_repl="/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
+readonly diagnostic_log_directory="${HOME}/Library/Logs/ChatGPT Guarded"
+readonly diagnostic_log_file="${diagnostic_log_directory}/launcher.log"
+
+log_event() {
+  /bin/mkdir -p "${diagnostic_log_directory}" 2>/dev/null || return 0
+  /usr/bin/printf '%s source=node_repl pid=%s %s\n' \
+    "$(/bin/date -u '+%Y-%m-%dT%H:%M:%SZ')" "$$" "$1" \
+    >> "${diagnostic_log_file}" 2>/dev/null || true
+}
 
 # Required workaround: Browser ambient telemetry and aura/site_status use the
 # native privileged-fetch path, which needs these explicit proxy variables.
@@ -15,4 +24,11 @@ export NO_PROXY="localhost,127.0.0.1,::1"
 # needs remote access. It is not part of the Browser privileged-fetch timeout fix.
 export NODE_USE_ENV_PROXY=1
 
+if [[ ! -x "${bundled_node_repl}" ]]; then
+  log_event "wrapper_error reason=bundled_node_repl_missing"
+  print -u2 "ChatGPT Guarded: bundled node_repl is missing: ${bundled_node_repl}"
+  exit 1
+fi
+
+log_event "wrapper_exec node_use_env_proxy=1"
 exec "${bundled_node_repl}" "$@"
