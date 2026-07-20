@@ -23,3 +23,12 @@ Each skill is a Markdown file with YAML front matter (`name`, `description`) fol
 ```bash
 npm skills install xc1427/xc1427-skills
 ```
+
+For local development from a checkout, keep the repository as the source of truth:
+
+```bash
+./scripts/link-agent-skills.sh
+./scripts/link-claude-skills.sh
+```
+
+The first command creates one `~/.agents/skills/c14` umbrella link. The second creates the top-level per-skill links required by Claude Code.

@@ -19,3 +19,23 @@ When a standalone script is feasible, it should be the default. Agent-facing ski
 
 - NEVER hardcode absolute home directory paths (e.g. `/Users/<username>/`) in any file committed to the repo. Always use `$HOME`, `~`, or other portable alternatives instead.
 - Before committing, double-check that no personal identifiers (usernames, home paths, email addresses, hostnames) have leaked into tracked files.
+
+## Local Skill Links
+
+Use the repository as the source of truth for local development instead of copying its skills into user-scope directories.
+
+For agents that discover nested skills below `~/.agents/skills`, create one umbrella symlink from the repository root:
+
+```zsh
+./scripts/link-agent-skills.sh
+```
+
+This links `~/.agents/skills/c14` to this repository's `skills/` directory and removes redundant top-level links that already point to individual skills in the same checkout.
+
+Claude Code does not discover nested skills through an umbrella directory. After adding or renaming a skill under `skills/`, also run:
+
+```zsh
+./scripts/link-claude-skills.sh
+```
+
+That script creates or updates one top-level `~/.claude/skills/<skill-name>` symlink for every `skills/*/SKILL.md`. The `~/.claude/skills/c14` path is the actual `c14` skill link, not an umbrella link.
