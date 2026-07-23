@@ -8,15 +8,26 @@ description: Build, install, verify, update, or remove the ChatGPT Guarded macOS
 Use the bundled installer to maintain a short-lived macOS launcher at
 `$HOME/Applications/ChatGPT Guarded.app`.
 
-The launcher exists for one narrow reason: the native Browser helper currently needs
-an explicit HTTP(S) proxy for its privileged fetch path. It starts the original
-`/Applications/ChatGPT.app` with only:
+The launcher applies a process-scoped proxy to the original `/Applications/ChatGPT.app`.
+It protects both Chromium's desktop-app network layer and the native Browser helper,
+without changing the macOS system proxy. Chromium receives:
+
+```text
+--proxy-server=http://127.0.0.1:7890
+```
+
+The ChatGPT process and its non-Chromium children receive:
 
 ```text
 CODEX_NODE_REPL_PATH=$HOME/.local/bin/codex-node-repl-proxy
+HTTP_PROXY=http://127.0.0.1:7890
+HTTPS_PROXY=http://127.0.0.1:7890
+ALL_PROXY=http://127.0.0.1:7890
+NO_PROXY=localhost,127.0.0.1,::1
+NODE_USE_ENV_PROXY=1
 ```
 
-The installed native-helper wrapper owns the proxy environment:
+The installed native-helper wrapper independently applies the same environment:
 
 ```text
 HTTP_PROXY=http://127.0.0.1:7890
@@ -63,8 +74,8 @@ When ChatGPT Guarded opens:
 3. Before a cold launch or relaunch, perform a bounded proxy check against
    `https://ab.chatgpt.com/v1` through `127.0.0.1:7890`. Retry transient failures up
    to three times with short backoff delays before reporting that the proxy is unavailable.
-4. Launch the original ChatGPT bundle with new-instance creation disabled.
-5. Verify the launched process received the expected helper path, then exit.
+4. Launch the original ChatGPT bundle with the Chromium proxy flag and new-instance creation disabled.
+5. Verify the launched process received the expected app and helper proxy configuration, then exit.
 
 The launcher is an `LSUIElement`, so it does not remain in the Dock or application
 switcher. It keeps the display name `ChatGPT Guarded` and registers `Codex Guarded` as
@@ -105,8 +116,9 @@ After installation:
 4. With a correctly configured ChatGPT process already running, open ChatGPT Guarded
    and confirm the original ChatGPT PID does not change and no second ChatGPT process
    appears.
-5. On the next safe cold start, verify the generated `node_repl` command points to the
-   installed wrapper and time an in-app Browser navigation.
+5. On the next safe cold start, verify ChatGPT's launch command includes `--proxy-server`,
+   the generated `node_repl` command points to the installed wrapper, and time an in-app
+   Browser navigation.
 6. Verify a standalone bundled-Node `fetch()` reaches a proxy-required HTTPS endpoint
    with the wrapper's environment, while localhost remains covered by `NO_PROXY`.
 7. Open ChatGPT Guarded and confirm `launcher.log` contains one session from
