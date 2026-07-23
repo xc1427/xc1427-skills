@@ -5,6 +5,8 @@ private let chatGPTBundleID = "com.openai.codex"
 private let chatGPTURL = URL(fileURLWithPath: "/Applications/ChatGPT.app")
 private let proxyURL = Bundle.main.object(forInfoDictionaryKey: "GuardedProxyURL") as? String
     ?? "http://127.0.0.1:7890"
+private let proxyBypassHosts = "localhost,127.0.0.1,::1"
+private let chromiumProxyArgument = "--proxy-server=\(proxyURL)"
 private let probeURL = Bundle.main.object(forInfoDictionaryKey: "GuardedProbeURL") as? String
     ?? "https://ab.chatgpt.com/v1"
 private let proxyProbeMaxAttempts = 3
@@ -17,7 +19,15 @@ private let previousDiagnosticLogURL = diagnosticLogDirectoryURL
 private let maxDiagnosticLogSizeBytes: UInt64 = 512 * 1024
 private let nodeReplProxyURL = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent(".local/bin/codex-node-repl-proxy")
-private let expectedEnvironmentEntry = "CODEX_NODE_REPL_PATH=\(nodeReplProxyURL.path)"
+private let expectedLaunchEntries = [
+    "CODEX_NODE_REPL_PATH=\(nodeReplProxyURL.path)",
+    "HTTP_PROXY=\(proxyURL)",
+    "HTTPS_PROXY=\(proxyURL)",
+    "ALL_PROXY=\(proxyURL)",
+    "NO_PROXY=\(proxyBypassHosts)",
+    "NODE_USE_ENV_PROXY=1",
+    chromiumProxyArgument,
+]
 
 private struct CommandResult {
     let status: Int32
@@ -133,15 +143,15 @@ private func runningChatGPT() -> NSRunningApplication? {
     }
 }
 
-private func hasExpectedEnvironment(_ application: NSRunningApplication) -> Bool {
+private func hasExpectedLaunchConfiguration(_ application: NSRunningApplication) -> Bool {
     let result = runCommand(
         "/bin/ps",
         ["eww", "-p", String(application.processIdentifier), "-o", "command="]
     )
     guard result.status == 0 else { return false }
-    return result.output
+    let entries = result.output
         .split(whereSeparator: { $0.isWhitespace })
-        .contains(Substring(expectedEnvironmentEntry))
+    return expectedLaunchEntries.allSatisfy { entries.contains(Substring($0)) }
 }
 
 private func waitUntilChatGPTStops(timeout: TimeInterval) -> Bool {
@@ -228,6 +238,18 @@ private func launchEnvironment() -> [String: String] {
         "ALL_PROXY", "all_proxy",
     ]
     staleKeys.forEach { environment.removeValue(forKey: $0) }
+
+    // Chromium's app network service needs an explicit launch flag; these variables
+    // cover the separately spawned Node and native clients without touching macOS-wide proxy state.
+    environment["HTTP_PROXY"] = proxyURL
+    environment["HTTPS_PROXY"] = proxyURL
+    environment["ALL_PROXY"] = proxyURL
+    environment["NO_PROXY"] = proxyBypassHosts
+    environment["http_proxy"] = proxyURL
+    environment["https_proxy"] = proxyURL
+    environment["all_proxy"] = proxyURL
+    environment["no_proxy"] = proxyBypassHosts
+    environment["NODE_USE_ENV_PROXY"] = "1"
     environment["CODEX_NODE_REPL_PATH"] = nodeReplProxyURL.path
     return environment
 }
@@ -236,6 +258,7 @@ private func launchChatGPT() -> Result<NSRunningApplication, Error> {
     let configuration = NSWorkspace.OpenConfiguration()
     configuration.activates = true
     configuration.createsNewApplicationInstance = false
+    configuration.arguments = [chromiumProxyArgument]
     configuration.environment = launchEnvironment()
 
     var result: Result<NSRunningApplication, Error>?
@@ -294,7 +317,7 @@ private func runLauncher() {
     }
 
     if let current = runningChatGPT() {
-        let isGuarded = hasExpectedEnvironment(current)
+        let isGuarded = hasExpectedLaunchConfiguration(current)
         trace("chatgpt_detected pid=\(current.processIdentifier) guarded=\(isGuarded)")
         if isGuarded {
             trace("chatgpt_activate_existing pid=\(current.processIdentifier)")
@@ -304,7 +327,7 @@ private func runLauncher() {
 
         let response = showAlert(
             title: "ChatGPT needs a guarded restart",
-            message: "The running ChatGPT process does not have the Browser helper proxy. Quit and relaunch it now?",
+            message: "The running ChatGPT process does not have the required app and Browser proxy settings. Quit and relaunch it now?",
             buttons: ["Quit and Relaunch", "Cancel"]
         )
         guard response == .alertFirstButtonReturn else {
@@ -337,12 +360,12 @@ private func runLauncher() {
         showAlert(title: "ChatGPT did not start", message: error.localizedDescription, style: .critical)
     case .success(let launched):
         trace("chatgpt_launched pid=\(launched.processIdentifier)")
-        guard hasExpectedEnvironment(launched) else {
+        guard hasExpectedLaunchConfiguration(launched) else {
             trace("chatgpt_verification_failed pid=\(launched.processIdentifier)")
             launched.terminate()
             showAlert(
                 title: "Guarded launch verification failed",
-                message: "ChatGPT did not receive the expected Browser helper path and was closed.",
+                message: "ChatGPT did not receive the expected app and Browser proxy configuration and was closed.",
                 style: .critical
             )
             return
