@@ -38,4 +38,4 @@ Claude Code does not discover nested skills through an umbrella directory. After
 ./scripts/link-claude-skills.sh
 ```
 
-That script creates or updates one top-level `~/.claude/skills/<skill-name>` symlink for every `skills/*/SKILL.md`. The `~/.claude/skills/c14-scripts` path is the actual `c14-scripts` skill link; `~/.agents/skills/c14` is only the namespace umbrella for all skills in this repository.
+That script scans `skills/*/SKILL.md` and creates or updates one top-level `~/.claude/skills/<skill-name>` symlink for every skill. The Agents-only namespace umbrella `~/.agents/skills/c14` has no Claude Code counterpart.
