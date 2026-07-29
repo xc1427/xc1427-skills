@@ -1,0 +1,7 @@
+interface:
+  display_name: "C14 Man Tongue"
+  short_description: "把中文压短、写透、写得锋利，并留一点自然的人味和跳跃"
+  default_prompt: "Use $c14-man-tongue to rewrite this into concise, sharp, human Chinese."
+
+policy:
+  allow_implicit_invocation: false
