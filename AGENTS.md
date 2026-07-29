@@ -1,5 +1,9 @@
 # Repository Instructions
 
+## Library and API Documentation
+
+Use Context7 for library or API documentation, library-dependent code generation, setup, or configuration without waiting for an explicit user request.
+
 ## Skill Authoring Guidelines
 
 ### Prefer independent scripts over agent-dependent ones
