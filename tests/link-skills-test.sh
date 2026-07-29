@@ -11,7 +11,7 @@ agent_backup="$tmp_root/agents/skills-disabled"
 claude_root="$tmp_root/claude/skills"
 claude_backup="$tmp_root/claude/skills-disabled"
 
-for skill_name in c14 c14-chatgpt-guarded c14-git-worktree; do
+for skill_name in c14-scripts c14-chatgpt-guarded c14-git-worktree; do
   mkdir -p "$source_root/$skill_name"
   printf '%s\n' "---" "name: $skill_name" "description: test fixture" "---" > "$source_root/$skill_name/SKILL.md"
 done
@@ -35,13 +35,12 @@ AGENT_SKILLS_BACKUP_DIR="$agent_backup" \
 
 mkdir -p "$claude_root/c14-git-worktree"
 printf 'conflict\n' > "$claude_root/c14-git-worktree/marker"
-ln -s "$source_root" "$claude_root/c14"
 
 CLAUDE_SKILLS_DIR="$claude_root" \
 CLAUDE_SKILLS_BACKUP_DIR="$claude_backup" \
   "$repo_root/scripts/link-claude-skills.sh" "$source_root"
 
-for skill_name in c14 c14-chatgpt-guarded c14-git-worktree; do
+for skill_name in c14-scripts c14-chatgpt-guarded c14-git-worktree; do
   [[ -L "$claude_root/$skill_name" ]]
   [[ "$(realpath "$claude_root/$skill_name")" == "$(realpath "$source_root/$skill_name")" ]]
 done
