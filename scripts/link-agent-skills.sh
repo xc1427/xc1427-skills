@@ -7,7 +7,7 @@ repo_root="$(cd -- "$script_dir/.." && pwd)"
 source_root="${1:-"$repo_root/skills"}"
 target_root="${AGENT_SKILLS_DIR:-"$HOME/.agents/skills"}"
 backup_root="${AGENT_SKILLS_BACKUP_DIR:-"$HOME/.agents/skills-disabled/link-agent-skills-$(date +%Y%m%d-%H%M%S)"}"
-umbrella_name="${C14_SCRIPTS_UMBRELLA_NAME:-c14-scripts}"
+umbrella_name="${C14_SKILLS_UMBRELLA_NAME:-c14}"
 link_path="$target_root/$umbrella_name"
 
 if [[ ! -d "$source_root" ]]; then

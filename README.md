@@ -32,4 +32,4 @@ For local development from a checkout, keep the repository as the source of trut
 ./scripts/link-claude-skills.sh
 ```
 
-The first command creates one `~/.agents/skills/c14-scripts` umbrella link. The second creates the top-level per-skill links required by Claude Code.
+The first command creates the `~/.agents/skills/c14` namespace umbrella for this repository. The second creates the top-level per-skill links required by Claude Code.
