@@ -21,9 +21,9 @@ Only create scripts that depend on an agentic context when the task cannot be cl
 - Never hardcode absolute home directory paths such as `/Users/<username>/` in files committed to the repository. Use `$HOME`, `~`, or another portable alternative.
 - Before committing, check that tracked files do not contain personal usernames, home paths, email addresses, or hostnames.
 
-## Local Skill Links
+## User-Scope Skill Deployment
 
-Use the repository as the source of truth for local development instead of copying its skills into user-scope directories.
+Use the scripts below to deploy this repository's skills into user-scope discovery directories through symlinks. The repository remains the source of truth; deployment targets contain links, not copied skill contents.
 
 For agents that discover nested skills below `~/.agents/skills`, create one umbrella symlink from the repository root:
 

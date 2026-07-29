@@ -25,7 +25,7 @@ Each skill is a Markdown file with YAML front matter (`name`, `description`) fol
 npm skills install xc1427/xc1427-skills
 ```
 
-For local development from a checkout, keep the repository as the source of truth:
+To deploy this repository's skills into user-scope discovery directories through symlinks:
 
 ```bash
 ./scripts/link-agent-skills.sh
