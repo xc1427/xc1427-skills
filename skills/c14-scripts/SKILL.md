@@ -1,19 +1,20 @@
 ---
-name: c14
+name: c14-scripts
 description: >
-  Use this skill when the user types "/c14", wants to run a personal automation script,
-  asks "what scripts do I have", or expresses intent that might match a personal task
-  (e.g. "run my backup", "clean up node_modules", "sync my dotfiles"). Also use this
-  skill when the user asks how to write a c14 script, wants to create a new c14 script,
-  or asks about the c14 script conventions. This is a personal script hub — all
-  c14-* scripts in ~/.local/bin are candidates.
+  Discover, run, and author personal c14-* automation scripts in ~/.local/bin. Use
+  when the user invokes c14-scripts or "/c14-scripts", asks "what scripts do I
+  have", expresses intent that might match a personal task (e.g. "run my backup",
+  "clean up node_modules", "sync my dotfiles"), or asks how to create a c14
+  script and follow its conventions.
 ---
 
-You are running the c14 personal script launcher. Follow these steps exactly:
+# c14 Scripts
+
+Run the c14 personal script launcher. Follow these steps exactly:
 
 ## Step 1 — Capture intent
 
-Note whether the user's message contains a hint about what they want to do (e.g. "backup", "sync", "clean"). Store it as INTENT. If the message is just "/c14" with nothing else, INTENT is empty.
+Note whether the user's message contains a hint about what they want to do (e.g. "backup", "sync", "clean"). Store it as INTENT. If the message is just "/c14-scripts" with nothing else, INTENT is empty.
 
 ## Step 2 — Discover scripts
 
