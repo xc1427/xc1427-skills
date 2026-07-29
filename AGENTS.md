@@ -12,7 +12,9 @@ When writing functionality for a skill, favor **standalone shell scripts** that 
 
 Only create scripts that depend on an agentic context when the task cannot be cleanly expressed as a standalone script and a clean architecture without agent coupling is genuinely not achievable.
 
-## Personal Information
+## Repository-Wide Requirements
+
+### Privacy and Portability
 
 - Never hardcode absolute home directory paths such as `/Users/<username>/` in files committed to the repository. Use `$HOME`, `~`, or another portable alternative.
 - Before committing, check that tracked files do not contain personal usernames, home paths, email addresses, or hostnames.
