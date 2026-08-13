@@ -1,0 +1,13 @@
+interface:
+  display_name: "C14 Bear Notes"
+  short_description: "通过 Bear Notes MCP 读取、搜索和操作熊掌记内容"
+  default_prompt: "Use $c14-bear-notes to read or manage this Bear note through the Bear Notes MCP."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "bear_notes"
+      description: "Read, search, and manage notes and attachments in Bear"
+
+policy:
+  allow_implicit_invocation: true
