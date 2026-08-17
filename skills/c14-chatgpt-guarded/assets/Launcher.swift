@@ -17,6 +17,9 @@ private let diagnosticLogURL = diagnosticLogDirectoryURL.appendingPathComponent(
 private let previousDiagnosticLogURL = diagnosticLogDirectoryURL
     .appendingPathComponent("launcher.previous.log")
 private let maxDiagnosticLogSizeBytes: UInt64 = 512 * 1024
+private let updateReminderInterval: TimeInterval = 3 * 24 * 60 * 60
+private let updateReminderDefaultsKey = "lastRemindedUpdateCheckTimestamp"
+private let sparkleLastCheckKey = "SULastCheckTime"
 private let nodeReplProxyURL = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent(".local/bin/codex-node-repl-proxy")
 private let expectedLaunchEntries = [
@@ -310,11 +313,53 @@ private func validateInstallation() -> Bool {
     return true
 }
 
+private func remindIfUpdateCheckIsStale(now: Date = Date()) {
+    guard
+        let chatGPTDefaults = UserDefaults.standard.persistentDomain(forName: chatGPTBundleID),
+        let lastCheck = chatGPTDefaults[sparkleLastCheckKey] as? Date
+    else {
+        trace("update_reminder_skipped reason=last_check_missing")
+        return
+    }
+
+    let age = now.timeIntervalSince(lastCheck)
+    guard age >= updateReminderInterval else {
+        trace("update_reminder_skipped reason=check_recent age_seconds=\(Int(max(0, age)))")
+        return
+    }
+
+    // 以 Sparkle 最近一次成功检查的时间作为周期标识，同一周期只提醒一次。
+    let checkTimestamp = lastCheck.timeIntervalSince1970
+    let lastRemindedTimestamp = UserDefaults.standard.object(
+        forKey: updateReminderDefaultsKey
+    ) as? Double
+    guard lastRemindedTimestamp != checkTimestamp else {
+        trace("update_reminder_skipped reason=already_reminded")
+        return
+    }
+
+    let staleDays = max(3, Int(age / (24 * 60 * 60)))
+    trace("update_reminder_shown stale_days=\(staleDays)")
+    showAlert(
+        title: "已经 3 天没有检查更新了",
+        message: """
+        ChatGPT 已经 \(staleDays) 天没有成功检查更新。这不代表一定有新版本。
+
+        请先在代理工具中打开 System Proxy，然后在 ChatGPT 菜单中选择“检查更新…”。Guarded 将继续启动。
+        """,
+        buttons: ["继续启动"]
+    )
+    UserDefaults.standard.set(checkTimestamp, forKey: updateReminderDefaultsKey)
+    trace("update_reminder_acknowledged")
+}
+
 private func runLauncher() {
     guard validateInstallation() else {
         trace("launcher_stop reason=invalid_installation")
         return
     }
+
+    remindIfUpdateCheckIsStale()
 
     if let current = runningChatGPT() {
         let isGuarded = hasExpectedLaunchConfiguration(current)
