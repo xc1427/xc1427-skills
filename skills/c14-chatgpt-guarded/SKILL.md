@@ -69,13 +69,16 @@ The installer:
 
 When ChatGPT Guarded opens:
 
-1. If a correctly configured ChatGPT process is already running, activate it and exit.
-2. If ChatGPT is running without the expected helper path, offer to quit and relaunch it.
-3. Before a cold launch or relaunch, perform a bounded proxy check against
+1. Read Sparkle's last successful update-check time. If it is at least 72 hours old,
+   remind the user once for that stale check period to enable System Proxy and choose
+   `Check for Updates...` in ChatGPT. The reminder is informational and does not block launch.
+2. If a correctly configured ChatGPT process is already running, activate it and exit.
+3. If ChatGPT is running without the expected helper path, offer to quit and relaunch it.
+4. Before a cold launch or relaunch, perform a bounded proxy check against
    `https://ab.chatgpt.com/v1` through `127.0.0.1:7890`. Retry transient failures up
    to three times with short backoff delays before reporting that the proxy is unavailable.
-4. Launch the original ChatGPT bundle with the Chromium proxy flag and new-instance creation disabled.
-5. Verify the launched process received the expected app and helper proxy configuration, then exit.
+5. Launch the original ChatGPT bundle with the Chromium proxy flag and new-instance creation disabled.
+6. Verify the launched process received the expected app and helper proxy configuration, then exit.
 
 The launcher is an `LSUIElement`, so it does not remain in the Dock or application
 switcher. It keeps the display name `ChatGPT Guarded` and registers `Codex Guarded` as
@@ -93,7 +96,7 @@ $HOME/Library/Logs/ChatGPT Guarded/launcher.log
 ```
 
 The trace records launcher decisions, proxy attempt exit/HTTP status and timing,
-restart choices, process identifiers, final launch verification, and each scoped Node
+update-reminder decisions, restart choices, process identifiers, final launch verification, and each scoped Node
 REPL wrapper startup. It does not dump the environment, command arguments, request or
 response bodies, credentials, or user content. Nothing is uploaded. Launcher events
 are capped at 2 KiB; the log rotates at 512 KiB and keeps one
@@ -123,6 +126,9 @@ After installation:
    with the wrapper's environment, while localhost remains covered by `NO_PROXY`.
 7. Open ChatGPT Guarded and confirm `launcher.log` contains one session from
    `launcher_start` through the final activation or failure decision.
+8. When Sparkle's `SULastCheckTime` is at least 72 hours old, confirm the launcher asks
+   the user to enable System Proxy and check for updates, then suppresses the same reminder
+   until Sparkle records a newer successful check.
 
 ## Retirement
 
