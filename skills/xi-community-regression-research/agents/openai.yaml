@@ -1,0 +1,7 @@
+interface:
+  display_name: "xi: Community Regression Research"
+  short_description: "Find public reports of bugs or regressions"
+  default_prompt: "Use $xi-community-regression-research to search GitHub and relevant online communities for reports about this issue."
+
+policy:
+  allow_implicit_invocation: true
