@@ -228,7 +228,7 @@ private func ensureProxyAvailable() -> Bool {
 
 private func launchEnvironment() -> [String: String] {
     var environment = ProcessInfo.processInfo.environment
-    let staleKeys = [
+    let inheritedEnvKeysToStrip = [
         "BROWSER_USE_DISABLE_AMBIENT_NETWORK",
         "BROWSER_USE_SECURITY_MODE",
         "CODEX_BROWSER_USE_NODE_PATH",
@@ -240,7 +240,7 @@ private func launchEnvironment() -> [String: String] {
         "http_proxy", "https_proxy", "no_proxy",
         "ALL_PROXY", "all_proxy",
     ]
-    staleKeys.forEach { environment.removeValue(forKey: $0) }
+    inheritedEnvKeysToStrip.forEach { environment.removeValue(forKey: $0) }
 
     // Chromium's app network service needs an explicit launch flag; these variables
     // cover the separately spawned Node and native clients without touching macOS-wide proxy state.
