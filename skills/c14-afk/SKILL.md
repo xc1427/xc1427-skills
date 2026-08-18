@@ -1,6 +1,6 @@
 ---
 name: c14-afk
-description: Temporarily keep the current session working while the user is AFK, restrict any necessary browser interaction to Chrome control or the in-app browser, and notify the user through dws when human intervention is required. Activate only when the user explicitly invokes c14-afk; never infer it from casual mentions of being away, delayed replies, or unattended work.
+description: Temporarily keep the current session working while the user is AFK, route necessary browser interaction through Chrome control or the in-app browser with Computer Use on regular Chrome as a last resort, and notify the user through dws when human intervention is required. Activate only when the user explicitly invokes c14-afk; never infer it from casual mentions of being away, delayed replies, or unattended work.
 ---
 
 # C14 AFK
@@ -16,11 +16,12 @@ Apply these rules only to the current session's active AFK window.
 ## Route browser work
 
 - Continue to prefer an applicable connector, API, or CLI when the task does not require browser interaction.
-- When browser interaction is necessary, use only one of these skills and follow its full instructions:
+- When browser interaction is necessary, start with one of these preferred skills and follow its full instructions:
   - `chrome:control-chrome` for the user's regular Chrome and its existing signed-in state.
   - `browser:control-in-app-browser` for the built-in in-app browser.
+- Only when both preferred browser-control skills are unavailable and browser interaction remains necessary, load `computer-use:computer-use` and use it to operate the regular Chrome app (`com.google.Chrome`) as the final fallback. Follow its full instructions and confirmation policy.
 - Never use Chrome Beta during the AFK window. This prohibition includes `chrome-devtools`, `chrome-devtools-cli`, or any other route that launches or attaches to Chrome Beta.
-- Do not substitute standalone Playwright, Computer Use, or another browser surface when both allowed browser surfaces are unavailable. Continue non-browser work and treat a required browser action as an intervention blocker.
+- Do not substitute standalone Playwright or another browser surface when the two preferred paths and the Computer Use fallback are unavailable. Continue non-browser work and treat a required browser action as an intervention blocker.
 
 ## Notify the user when intervention is required
 
