@@ -75,6 +75,7 @@ test_conflict_output_includes_agent_prompt() {
   output="$(cd "$worktree" && "$SYNC_SCRIPT")"
   prompt_block="$(printf '%s\n' "$output" | sed -n '/BEGIN CODING AGENT PROMPT/,/END CODING AGENT PROMPT/p')"
 
+  assert_contains "$output" "DEPRECATED: c14-git-worktree-sync.sh" "deprecation warning"
   assert_contains "$output" "❌ cxi.feat.1: dry-run detected conflicts — skipped" "conflict summary"
   assert_contains "$output" "🤖 Copy this to your coding agent:" "agent prompt header"
   assert_contains "$output" "----- BEGIN CODING AGENT PROMPT -----" "prompt start marker"

@@ -33,6 +33,15 @@ assert_file_contains() {
   grep -Fqx "$expected" "$path" || fail "$message: '$expected' not found in '$path'"
 }
 
+assert_file_equals() {
+  local path="$1"
+  local expected="$2"
+  local message="$3"
+  local actual
+  actual=$(cat "$path")
+  assert_eq "$actual" "$expected" "$message"
+}
+
 create_temp_repo() {
   local root
   root="$(mktemp -d)"
@@ -71,7 +80,12 @@ test_direct_create() {
 
   local branch
   branch="$(cd "$expected_path" && git rev-parse --abbrev-ref HEAD)"
-  assert_eq "$branch" "worktree-feature-a" "direct create checked out derived branch"
+  assert_eq "$branch" "cxi/worktree/feature-a" "direct create checked out derived branch"
+
+  local metadata_file
+  metadata_file="$(git -C "$expected_path" rev-parse --git-path c14-created-branch)"
+  assert_file_exists "$metadata_file" "direct create recorded branch ownership"
+  assert_file_equals "$metadata_file" "cxi/worktree/feature-a" "direct create recorded derived branch"
 }
 
 test_hook_create_and_reuse() {
