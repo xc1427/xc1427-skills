@@ -19,6 +19,11 @@
 
 set -euo pipefail
 
+echo "⚠ DEPRECATED: c14-git-worktree-sync.sh 的自动父子分支推断不再适用于推荐工作流。"
+echo "  请改用明确的 git merge <source-branch> 或 git rebase <base-branch>。"
+echo "  本脚本暂时保留，仅用于兼容已有流程。"
+echo ""
+
 # ─── Argument parsing ────────────────────────────────────────────────────────
 
 FATHER_OVERRIDE=""

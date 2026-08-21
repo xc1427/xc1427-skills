@@ -2,8 +2,8 @@
 #
 # 删除 git worktree 及其关联分支。
 #
-# 分支名直接从 `git worktree list --porcelain` 的登记项读取，不从目录名推导。
-# 这样从 linked worktree 继续创建出来的 sibling worktree 也能删到真实分支。
+# 创建脚本会在 linked worktree 的 Git 管理目录中记录它创建的临时分支。
+# 删除时读取该元数据；分支名不是 ownership 条件，元数据才是。
 #
 # 用法:
 #   git-worktree-remove.sh <worktree-path>
@@ -120,6 +120,19 @@ if [ -d "$MATCH_PATH" ]; then
 fi
 
 BRANCH_NAME="$MATCH_BRANCH"
+CREATED_BRANCH=""
+METADATA_FILE=""
+if [ -d "$MATCH_PATH" ]; then
+  METADATA_FILE=$(git -C "$MATCH_PATH" rev-parse --git-path c14-created-branch 2>/dev/null || true)
+  if [ -n "$METADATA_FILE" ] && [ -f "$METADATA_FILE" ]; then
+    CREATED_BRANCH=$(head -n 1 "$METADATA_FILE")
+    if ! git check-ref-format --branch "$CREATED_BRANCH" > /dev/null 2>&1; then
+      echo "错误: C14 创建分支元数据无效，已停止删除:" >&2
+      echo "  $METADATA_FILE" >&2
+      exit 1
+    fi
+  fi
+fi
 
 echo "Worktree: $MATCH_PATH"
 if [ -n "$BRANCH_NAME" ]; then
@@ -127,18 +140,25 @@ if [ -n "$BRANCH_NAME" ]; then
 else
   echo "Branch:   (detached HEAD)"
 fi
+if [ -n "$CREATED_BRANCH" ]; then
+  echo "C14 created branch: $CREATED_BRANCH"
+fi
 echo ""
 
 git worktree remove "$MATCH_PATH"
 echo "✓ worktree 已删除"
 
-if [ -z "$BRANCH_NAME" ]; then
-  echo "⏭  detached worktree 无关联本地分支需要删除"
-elif [[ "$BRANCH_NAME" != worktree-* ]]; then
-  echo "⏭  保留非 c14 worktree 分支 $BRANCH_NAME"
-elif git worktree list --porcelain | grep -F -q "branch refs/heads/$BRANCH_NAME"; then
-  echo "⏭  分支 $BRANCH_NAME 仍被其他 worktree 使用，已保留"
+if [ -z "$CREATED_BRANCH" ]; then
+  echo "⏭  未找到 C14 创建分支元数据，保留所有分支"
+elif git worktree list --porcelain | grep -F -q "branch refs/heads/$CREATED_BRANCH"; then
+  echo "⏭  C14 创建分支 $CREATED_BRANCH 仍被其他 worktree 使用，已保留"
+elif ! git show-ref --verify --quiet "refs/heads/$CREATED_BRANCH"; then
+  echo "⏭  C14 创建分支 $CREATED_BRANCH 已不存在"
 else
-  git branch -D "$BRANCH_NAME" 2>/dev/null && echo "✓ 分支 $BRANCH_NAME 已删除" \
-    || echo "⚠ 分支 $BRANCH_NAME 不存在或删除失败"
+  # 元数据明确归属为创建时的 disposable 分支，删除 worktree 时一并强制清理。
+  if git branch -D "$CREATED_BRANCH"; then
+    echo "✓ C14 创建分支 $CREATED_BRANCH 已删除"
+  else
+    echo "⚠ C14 创建分支 $CREATED_BRANCH 不存在或删除失败"
+  fi
 fi

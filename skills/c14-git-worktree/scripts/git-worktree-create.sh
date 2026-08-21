@@ -24,7 +24,7 @@ PROJECT_ROOT="$(pwd)"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 PARENT_DIR="$(cd "$PROJECT_ROOT/.." && pwd)"
 WORKTREE_DIR="$PARENT_DIR/$PROJECT_NAME-$NAME"
-BRANCH_NAME="worktree-$NAME"
+BRANCH_NAME="cxi/worktree/$NAME"
 BASE_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
 : "${BASE_BRANCH:=master}"
 
@@ -44,6 +44,12 @@ if git show-ref --verify --quiet "refs/heads/$BRANCH_NAME" 2>/dev/null; then
   git worktree add "$WORKTREE_DIR" "$BRANCH_NAME" >&2
 else
   git worktree add -b "$BRANCH_NAME" "$WORKTREE_DIR" "$BASE_BRANCH" >&2
+
+  # 元数据随 linked worktree 的 Git 管理目录存放，记录 C14 创建的临时分支。
+  # 后续即使用户切到业务分支，删除脚本仍只清理这个明确归属的临时分支。
+  METADATA_FILE="$(git -C "$WORKTREE_DIR" rev-parse --git-path c14-created-branch)"
+  printf '%s\n' "$BRANCH_NAME" > "$METADATA_FILE"
+  log "recorded created branch metadata at $METADATA_FILE"
 fi
 
 if [ -f "$PROJECT_ROOT/.env" ]; then
