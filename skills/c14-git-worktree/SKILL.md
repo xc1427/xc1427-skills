@@ -106,36 +106,32 @@ git worktree list
 
 ---
 
-### 同步提交 (Sync Commits，已弃用)
+### UP 合并检查（已弃用）
 
-> **已弃用。** 自动推断 primary worktree、父分支与全部子分支不适合当前推荐工作流。请显式执行 `git merge <source-branch>` 或 `git rebase <base-branch>`。脚本仅为兼容已有流程保留，运行时会输出 `DEPRECATED` 提示。
+> **已弃用。** 请改用显式 `git merge <source-branch>` 或 `git rebase <base-branch>`。该脚本只保留为兼容性的 dry-run 检查。
 
-在并行开发时，父分支和各 worktree 分支之间的提交往往需要同步。以下内容描述历史脚本的行为；新建的 `cxi/worktree/*` 分支不应依赖它自动同步。
+脚本只检查一个 linked worktree 分支能否合并到父分支。它不支持 DOWN，也不执行 `git merge`；无论检查结果如何，两个 worktree 都不会被修改。
 
-**方向自动判断：**
-- 当前 checkout 是 primary worktree → **DOWN**：将当前分支的新提交合并到所有已登记的 `worktree-*` linked worktree 分支
-- 当前 checkout 是 linked worktree → **UP**：将当前 linked worktree 的提交合并到父分支
-
-**特性：**
-- 执行前先用 `git merge-tree --write-tree` 进行 dry-run 检测
-- 有冲突的目标分支自动跳过，输出详细的手动解决步骤
-- 发生冲突时，额外输出一段更短的英文 prompt，用户可整段复制给 coding agent；prompt 会优先建议在待处理的 worktree 分支里先 merge father
-- 无冲突的目标分支正常执行 merge
-- 方向判断基于 Git 的 worktree 元信息（`--git-dir` 与 `--git-common-dir`），不依赖当前分支是否以 `worktree-` 开头；因此 primary worktree 上的主分支即使误用 `worktree-*` 命名，也仍会走 DOWN。
+**行为：**
+- 仅可在 linked worktree 运行；primary worktree 会直接报错。
+- 可传入 `--father <branch>` 显式指定目标；不传时使用 primary worktree 当前 checkout 的分支。两种方式都不读取 reflog。
+- primary worktree 当前 checkout 必须正是这个父分支，确保 dry-run 的目标与实际集成目标一致。
+- 使用 `git merge-tree --write-tree` 检查冲突；成功仅报告 clean，冲突时输出手工处理建议。
 
 **调用方式：**
 ```bash
+# 在 linked worktree 中运行；默认目标为 primary 当前分支：
 bash <skill-base-dir>/scripts/git-worktree-sync.sh
 
-# 如果父分支无法从 reflog 自动检测，可手动指定：
+# 或显式指定目标分支：
 bash <skill-base-dir>/scripts/git-worktree-sync.sh --father main
 ```
 
-**你（Claude）可以直接代为执行**，无需用户确认——除非有合并冲突（此时脚本只会跳过冲突项并打印解决步骤，不会修改任何文件）。
+**你（Claude）可以直接代为执行**，无需用户确认；该脚本不修改工作区、分支或提交。
 
 **冲突处理输出示例：**
 ```
-❌ worktree-feat-auth: dry-run detected conflicts — skipped
+❌ main: dry-run detected conflicts
    To resolve manually:
      cd ../yourproject-feat-auth
      git merge main
@@ -143,7 +139,7 @@ bash <skill-base-dir>/scripts/git-worktree-sync.sh --father main
      git merge --continue
 ```
 
-随后脚本还会追加一个带明确起止标记的英文文本块（`BEGIN/END CODING AGENT PROMPT`）。这段 prompt 会尽量短，同时保留 worktree 路径、当前待处理分支、father 分支、方向，以及建议先执行的 `git merge <father>` 命令。
+随后脚本还会追加一个带明确起止标记的英文文本块（`BEGIN/END CODING AGENT PROMPT`）。这段 prompt 会保留 worktree 路径、当前分支、父分支和手工处理起始命令；检查脚本本身不会合并。
 
 **需求 git ≥ 2.38**（`merge-tree --write-tree` 支持）。脚本会在启动时检查版本，不满足时提示升级命令。
 

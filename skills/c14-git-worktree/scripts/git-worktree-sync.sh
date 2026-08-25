@@ -2,31 +2,25 @@
 #
 # git-worktree-sync.sh
 #
-# Syncs commits between the "father" branch and worktree-* branches using merge.
-# Direction is auto-detected from the current checkout kind:
-#   - In the primary worktree → sync DOWN to all worktree-* branches
-#   - In a linked worktree    → sync UP to father
-#
-# A dry-run is performed first via `git merge-tree --write-tree`. Targets that
-# would produce conflicts are skipped and reported; clean targets are merged.
+# Checks whether the current linked-worktree branch can merge into an explicit
+# target branch. It only runs `git merge-tree --write-tree`; it never merges.
 #
 # Usage:
 #   bash git-worktree-sync.sh [--father <branch>]
 #
 # Options:
-#   --father <branch>   Override auto-detected father branch (useful when
-#                       reflog is unavailable or was pruned)
+#   --father <branch>   Optional explicit target branch; defaults to primary's current branch.
 
 set -euo pipefail
 
-echo "⚠ DEPRECATED: c14-git-worktree-sync.sh 的自动父子分支推断不再适用于推荐工作流。"
-echo "  请改用明确的 git merge <source-branch> 或 git rebase <base-branch>。"
-echo "  本脚本暂时保留，仅用于兼容已有流程。"
+echo "⚠ DEPRECATED: c14-git-worktree-sync.sh 只保留兼容性的合并检查。"
+echo "  请改用显式 git merge <source-branch> 或 git rebase <base-branch>。"
+echo "  此脚本只检查 linked worktree → --father 的合并，仅运行 dry-run，不会执行 git merge。"
 echo ""
 
 # ─── Argument parsing ────────────────────────────────────────────────────────
 
-FATHER_OVERRIDE=""
+FATHER_BRANCH=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --father)
@@ -34,11 +28,11 @@ while [[ $# -gt 0 ]]; do
         echo "Error: --father requires a branch name argument." >&2
         exit 1
       fi
-      FATHER_OVERRIDE="$2"
+      FATHER_BRANCH="$2"
       shift 2
       ;;
     -h|--help)
-      sed -n '3,15p' "$0" | sed 's/^# \?//'
+      sed -n '3,/^$/p' "$0" | sed 's/^# *//'
       exit 0
       ;;
     *)
@@ -81,111 +75,36 @@ else
   CURRENT_WORKTREE_KIND="linked"
 fi
 
-# ─── Worktree parsing ─────────────────────────────────────────────────────────
-
-# Parse `git worktree list --porcelain` into parallel arrays.
-# Entries with detached HEAD (no `branch` line) are skipped.
-
-WORKTREE_RAW=$(git worktree list --porcelain)
-
-declare -a ALL_PATHS=()
-declare -a ALL_BRANCHES=()
-
-_cur_path=""
-_cur_branch=""
-
-while IFS= read -r _line; do
-  if [[ "$_line" == worktree\ * ]]; then
-    # Flush previous entry
-    if [ -n "$_cur_path" ] && [ -n "$_cur_branch" ]; then
-      ALL_PATHS+=("$_cur_path")
-      ALL_BRANCHES+=("$_cur_branch")
-    fi
-    _cur_path="${_line#worktree }"
-    _cur_branch=""
-  elif [[ "$_line" == branch\ refs/heads/* ]]; then
-    _cur_branch="${_line#branch refs/heads/}"
-  fi
-done <<< "$WORKTREE_RAW"
-# Flush last entry
-if [ -n "$_cur_path" ] && [ -n "$_cur_branch" ]; then
-  ALL_PATHS+=("$_cur_path")
-  ALL_BRANCHES+=("$_cur_branch")
-fi
-
-PRIMARY_PATH="${ALL_PATHS[0]:-}"
-PRIMARY_BRANCH="${ALL_BRANCHES[0]:-}"
-
-# Collect non-primary worktrees whose branches match worktree-*
-declare -a DERIVED_PATHS=()
-declare -a DERIVED_BRANCHES=()
-
-for _i in "${!ALL_BRANCHES[@]}"; do
-  [ "$_i" -eq 0 ] && continue
-  _b="${ALL_BRANCHES[$_i]}"
-  if [[ "$_b" == worktree-* ]]; then
-    DERIVED_PATHS+=("${ALL_PATHS[$_i]}")
-    DERIVED_BRANCHES+=("$_b")
-  fi
-done
-
-# ─── Direction + father detection ─────────────────────────────────────────────
+# ─── UP dry-run target ────────────────────────────────────────────────────────
 
 if [ "$CURRENT_WORKTREE_KIND" = "primary" ]; then
-  DIRECTION="DOWN"
-else
-  DIRECTION="UP"
+  echo "Error: this command only supports a linked worktree; DOWN sync was removed." >&2
+  exit 1
 fi
 
-if [ -n "$FATHER_OVERRIDE" ]; then
-  FATHER_BRANCH="$FATHER_OVERRIDE"
-elif [ "$DIRECTION" = "UP" ]; then
-  # Read from reflog: "branch: Created from <father>"
-  FATHER_BRANCH=$(git log -g --pretty="%gs" "refs/heads/$CURRENT_BRANCH" 2>/dev/null \
-    | grep "^branch: Created from " \
-    | head -1 \
-    | sed 's/^branch: Created from //' || true)
-
-  if [ -z "$FATHER_BRANCH" ]; then
-    FATHER_BRANCH="$PRIMARY_BRANCH"
-    echo "⚠  Reflog entry not found — falling back to primary worktree branch: $FATHER_BRANCH"
-    echo "   (Override with: --father <branch>)"
-    echo ""
+PRIMARY_PATH=""
+while IFS= read -r _line; do
+  if [[ "$_line" == worktree\ * ]]; then
+    PRIMARY_PATH="${_line#worktree }"
+    break
   fi
-else
-  FATHER_BRANCH="$CURRENT_BRANCH"
+done < <(git worktree list --porcelain)
+
+if [ -z "$PRIMARY_PATH" ]; then
+  echo "Error: could not locate the primary worktree." >&2
+  exit 1
 fi
 
-# ─── Status summary ───────────────────────────────────────────────────────────
+PRIMARY_CURRENT_BRANCH=$(git -C "$PRIMARY_PATH" symbolic-ref --quiet --short HEAD) || {
+  echo "Error: primary worktree has a detached HEAD; sync cannot verify a merge target." >&2
+  exit 1
+}
 
-echo ""
-if [ "$DIRECTION" = "DOWN" ]; then
-  echo "📍 Current branch: $CURRENT_BRANCH  (father branch)"
-else
-  echo "📍 Current branch: $CURRENT_BRANCH"
-  echo "   Father branch:  $FATHER_BRANCH"
+TARGET_SOURCE="--father"
+if [ -z "$FATHER_BRANCH" ]; then
+  FATHER_BRANCH="$PRIMARY_CURRENT_BRANCH"
+  TARGET_SOURCE="primary worktree current branch"
 fi
-
-echo "🌿 Worktrees:"
-if [ "${#DERIVED_BRANCHES[@]}" -eq 0 ]; then
-  echo "   (none with worktree-* branches)"
-else
-  for _i in "${!DERIVED_BRANCHES[@]}"; do
-    echo "   • ${DERIVED_BRANCHES[$_i]}  →  ${DERIVED_PATHS[$_i]}"
-  done
-fi
-
-if [ "$DIRECTION" = "DOWN" ]; then
-  echo "🔄 Direction: DOWN (father → all worktrees)"
-else
-  echo "🔄 Direction: UP   (worktree → father)"
-fi
-echo ""
-
-# ─── Sync ────────────────────────────────────────────────────────────────────
-
-SYNCED=0
-SKIPPED=0
 
 _dry_run_ok() {
   # Returns 0 if merge of <source> into <dest> would be conflict-free.
@@ -194,139 +113,51 @@ _dry_run_ok() {
   git merge-tree --write-tree "$dest" "$src" > /dev/null 2>&1
 }
 
-_do_merge() {
-  # Runs actual merge inside <worktree_path>: merges <source_branch> into HEAD.
-  # Outputs merge details (new commits or "already up to date").
-  # Returns 0 on success (including already-up-to-date), non-zero on failure.
-  local wt_path="$1" source_branch="$2"
-  local before_sha after_sha merge_output
-  before_sha=$(cd "$wt_path" && git rev-parse HEAD)
-  merge_output=$(cd "$wt_path" && git merge "$source_branch" --no-edit 2>&1) || return $?
-  after_sha=$(cd "$wt_path" && git rev-parse HEAD)
-
-  if [ "$before_sha" = "$after_sha" ]; then
-    echo "     Already up to date — no new commits."
-  else
-    local new_commits
-    new_commits=$(cd "$wt_path" && git log --oneline "$before_sha..$after_sha" 2>/dev/null)
-    echo "     New commits merged:"
-    while IFS= read -r _commit_line; do
-      echo "       $_commit_line"
-    done <<< "$new_commits"
-  fi
-}
-
 _failure_hint() {
-  local target_branch="$1" target_path="$2" source_branch="$3"
-  local resolve_path resolve_branch
-
-  if [ "$DIRECTION" = "UP" ]; then
-    resolve_path="$CURRENT_WORKTREE_PATH"
-    resolve_branch="$CURRENT_BRANCH"
-  else
-    resolve_path="$target_path"
-    resolve_branch="$target_branch"
-  fi
-
-  echo "  ❌ $target_branch: dry-run detected conflicts — skipped"
+  echo "  ❌ $FATHER_BRANCH: dry-run detected conflicts"
   echo "     To resolve manually:"
-  echo "       cd \"$resolve_path\""
+  echo "       cd \"$CURRENT_WORKTREE_PATH\""
   echo "       git merge $FATHER_BRANCH"
   echo "       git mergetool   # or open conflicted files in your editor"
   echo "       git merge --continue"
-  if [ "$DIRECTION" = "UP" ]; then
-    echo "       # rerun this sync command afterwards to update $FATHER_BRANCH"
-  fi
+  echo "       # Rerun this dry-run, then merge manually after review."
   echo ""
-  _agent_prompt "$resolve_path" "$resolve_branch"
+  _agent_prompt
 }
 
 _agent_prompt() {
-  local resolve_path="$1" resolve_branch="$2"
-  local direction_label
-
-  if [ "$DIRECTION" = "DOWN" ]; then
-    direction_label="DOWN (father -> all worktrees)"
-  else
-    direction_label="UP (worktree -> father)"
-  fi
-
   echo "🤖 Copy this to your coding agent:"
   echo "----- BEGIN CODING AGENT PROMPT -----"
   echo "Resolve this git worktree sync conflict for me."
-  echo "Worktree: ${resolve_path}"
-  echo "Current branch: ${resolve_branch}"
+  echo "Worktree: ${CURRENT_WORKTREE_PATH}"
+  echo "Current branch: ${CURRENT_BRANCH}"
   echo "Father branch: ${FATHER_BRANCH}"
-  echo "Direction: ${direction_label}"
-  echo "Start with: cd \"${resolve_path}\" && git merge ${FATHER_BRANCH}"
-  echo "After that, resolve the conflict on the current branch, verify the result, rerun the sync, and report which files conflicted plus any manual follow-up."
+  echo "This command was a dry-run and did not merge anything."
+  echo "Start with: cd \"${CURRENT_WORKTREE_PATH}\" && git merge ${FATHER_BRANCH}"
+  echo "Resolve the conflict, rerun the dry-run, then manually merge only after review."
   echo "----- END CODING AGENT PROMPT -----"
   echo ""
 }
 
-if [ "$DIRECTION" = "DOWN" ]; then
-  if [ "${#DERIVED_BRANCHES[@]}" -eq 0 ]; then
-    echo "Warning: no worktree-* branches found. Nothing to sync."
-    exit 0
-  fi
-
-  for _i in "${!DERIVED_BRANCHES[@]}"; do
-    _branch="${DERIVED_BRANCHES[$_i]}"
-    _path="${DERIVED_PATHS[$_i]}"
-
-    echo -n "  Checking $_branch ... "
-    if _dry_run_ok "$_branch" "$FATHER_BRANCH"; then
-      echo "clean"
-      if _do_merge "$_path" "$FATHER_BRANCH"; then
-        echo "  ✅ $_branch: sync complete"
-        SYNCED=$((SYNCED + 1))
-      else
-        echo "  ❌ $_branch: merge failed unexpectedly after clean dry-run"
-        echo "     Run: cd $_path && git merge --abort"
-        SKIPPED=$((SKIPPED + 1))
-      fi
-    else
-      echo "conflicts"
-      _failure_hint "$_branch" "$_path" "$FATHER_BRANCH"
-      SKIPPED=$((SKIPPED + 1))
-    fi
-  done
-
-elif [ "$DIRECTION" = "UP" ]; then
-  if ! git show-ref --verify --quiet "refs/heads/$FATHER_BRANCH"; then
-    echo "Error: father branch '$FATHER_BRANCH' does not exist." >&2
-    echo "  Use --father <branch> to specify it manually." >&2
-    exit 1
-  fi
-
-  echo -n "  Checking $FATHER_BRANCH ... "
-  if _dry_run_ok "$FATHER_BRANCH" "$CURRENT_BRANCH"; then
-    echo "clean"
-    if _do_merge "$PRIMARY_PATH" "$CURRENT_BRANCH"; then
-      echo "  ✅ $FATHER_BRANCH: sync complete"
-      SYNCED=$((SYNCED + 1))
-    else
-      echo "  ❌ $FATHER_BRANCH: merge failed unexpectedly after clean dry-run"
-      echo "     Run: cd $PRIMARY_PATH && git merge --abort"
-      SKIPPED=$((SKIPPED + 1))
-    fi
-  else
-    echo "conflicts"
-    _failure_hint "$FATHER_BRANCH" "$PRIMARY_PATH" "$CURRENT_BRANCH"
-    SKIPPED=$((SKIPPED + 1))
-  fi
+if ! git show-ref --verify --quiet "refs/heads/$FATHER_BRANCH"; then
+  echo "Error: father branch '$FATHER_BRANCH' does not exist." >&2
+  exit 1
 fi
 
-# ─── Summary ─────────────────────────────────────────────────────────────────
+if [ "$PRIMARY_CURRENT_BRANCH" != "$FATHER_BRANCH" ]; then
+  echo "Error: primary worktree is on '$PRIMARY_CURRENT_BRANCH', but dry-run target is '$FATHER_BRANCH'." >&2
+  echo "  Check out $FATHER_BRANCH in the primary worktree, or rerun with --father $PRIMARY_CURRENT_BRANCH." >&2
+  exit 1
+fi
 
 echo ""
-if [ "$SYNCED" -gt 0 ] && [ "$SKIPPED" -eq 0 ]; then
-  echo "✅ Synced $SYNCED branch(es) successfully"
-elif [ "$SYNCED" -gt 0 ] && [ "$SKIPPED" -gt 0 ]; then
-  echo "✅ Synced $SYNCED branch(es) successfully"
-  echo "❌ Skipped $SKIPPED branch(es) due to conflicts (see above)"
-elif [ "$SYNCED" -eq 0 ] && [ "$SKIPPED" -gt 0 ]; then
-  echo "❌ All $SKIPPED branch(es) skipped due to conflicts (see above)"
+echo "📍 Source branch: $CURRENT_BRANCH"
+echo "   Target branch: $FATHER_BRANCH ($TARGET_SOURCE)"
+echo -n "🔍 Dry-run $CURRENT_BRANCH → $FATHER_BRANCH ... "
+if _dry_run_ok "$FATHER_BRANCH" "$CURRENT_BRANCH"; then
+  echo "clean"
+  echo "✓ Dry-run clean. No merge was performed."
 else
-  echo "Nothing was synced."
+  echo "conflicts"
+  _failure_hint
 fi
