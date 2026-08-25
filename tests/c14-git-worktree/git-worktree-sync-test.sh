@@ -30,8 +30,8 @@ assert_line_count_lte() {
   fi
 }
 
-create_sync_conflict_repo() {
-  local root repo worktree common_dir reflog_path
+create_sync_repo() {
+  local mode="${1:-clean}" root repo worktree
   root="$(mktemp -d)"
   root="$(cd "$root" && pwd -P)"
   repo="$root/demo"
@@ -51,45 +51,120 @@ create_sync_conflict_repo() {
 
   git worktree add -q -b worktree-adhoc-features "$worktree"
 
-  printf 'father change\n' > shared.txt
-  git commit -qam "father change"
+  if [ "$mode" = "conflict" ]; then
+    printf 'father change\n' > shared.txt
+    git commit -qam "father change"
 
-  printf 'worktree change\n' > "$worktree/shared.txt"
-  git -C "$worktree" commit -qam "worktree change"
-
-  common_dir="$(git -C "$worktree" rev-parse --path-format=absolute --git-common-dir)"
-  reflog_path="$common_dir/logs/refs/heads/worktree-adhoc-features"
-  rm -f "$reflog_path"
+    printf 'worktree change\n' > "$worktree/shared.txt"
+    git -C "$worktree" commit -qam "worktree change"
+  fi
 
   printf '%s\n%s\n' "$repo" "$worktree"
+}
+
+assert_heads_unchanged() {
+  local repo="$1" worktree="$2" before_primary_sha="$3" before_worktree_sha="$4"
+  [ "$before_primary_sha" = "$(git -C "$repo" rev-parse HEAD)" ] || fail "primary worktree changed"
+  [ "$before_worktree_sha" = "$(git -C "$worktree" rev-parse HEAD)" ] || fail "linked worktree changed"
+}
+
+assert_failed_sync_preserves_heads() {
+  local repo="$1" worktree="$2" run_path="$3" expected_error="$4"
+  shift 4
+
+  local output before_primary_sha before_worktree_sha
+  before_primary_sha="$(git -C "$repo" rev-parse HEAD)"
+  before_worktree_sha="$(git -C "$worktree" rev-parse HEAD)"
+
+  if output="$(cd "$run_path" && "$SYNC_SCRIPT" "$@" 2>&1)"; then
+    fail "sync should fail: $expected_error"
+  fi
+
+  assert_contains "$output" "$expected_error" "sync failure"
+  assert_heads_unchanged "$repo" "$worktree" "$before_primary_sha" "$before_worktree_sha"
 }
 
 test_conflict_output_includes_agent_prompt() {
   [ -x "$SYNC_SCRIPT" ] || fail "sync script is not executable: $SYNC_SCRIPT"
 
   local repo worktree output prompt_block
-  mapfile -t _paths < <(create_sync_conflict_repo)
+  mapfile -t _paths < <(create_sync_repo conflict)
   repo="${_paths[0]}"
   worktree="${_paths[1]}"
 
-  output="$(cd "$worktree" && "$SYNC_SCRIPT")"
+  output="$(cd "$worktree" && "$SYNC_SCRIPT" --father cxi.feat.1)"
   prompt_block="$(printf '%s\n' "$output" | sed -n '/BEGIN CODING AGENT PROMPT/,/END CODING AGENT PROMPT/p')"
 
   assert_contains "$output" "DEPRECATED: c14-git-worktree-sync.sh" "deprecation warning"
-  assert_contains "$output" "❌ cxi.feat.1: dry-run detected conflicts — skipped" "conflict summary"
+  assert_contains "$output" "只检查 linked worktree → --father 的合并" "dry-run-only notice"
+  assert_contains "$output" "❌ cxi.feat.1: dry-run detected conflicts" "conflict summary"
   assert_contains "$output" "🤖 Copy this to your coding agent:" "agent prompt header"
   assert_contains "$output" "----- BEGIN CODING AGENT PROMPT -----" "prompt start marker"
   assert_contains "$output" "Resolve this git worktree sync conflict for me." "prompt intro"
   assert_contains "$output" "Worktree: $worktree" "worktree path context"
   assert_contains "$output" "Current branch: worktree-adhoc-features" "current branch context"
   assert_contains "$output" "Father branch: cxi.feat.1" "father branch context"
-  assert_contains "$output" "Direction: UP (worktree -> father)" "direction context"
+  assert_contains "$output" "This command was a dry-run and did not merge anything." "dry-run context"
   assert_contains "$output" "Start with: cd \"$worktree\" && git merge cxi.feat.1" "merge command context"
-  assert_contains "$output" "After that, resolve the conflict on the current branch, verify the result, rerun the sync, and report which files conflicted plus any manual follow-up." "self-contained closing"
+  assert_contains "$output" "Resolve the conflict, rerun the dry-run, then manually merge only after review." "self-contained closing"
   assert_contains "$output" "----- END CODING AGENT PROMPT -----" "prompt end marker"
   assert_line_count_lte "$prompt_block" 9 "prompt block should stay compact"
 }
 
+test_clean_dry_run_does_not_merge() {
+  local repo worktree output before_primary_sha before_worktree_sha
+  mapfile -t _paths < <(create_sync_repo)
+  repo="${_paths[0]}"
+  worktree="${_paths[1]}"
+  before_primary_sha="$(git -C "$repo" rev-parse HEAD)"
+  before_worktree_sha="$(git -C "$worktree" rev-parse HEAD)"
+
+  output="$(cd "$worktree" && "$SYNC_SCRIPT" --father cxi.feat.1)"
+  assert_contains "$output" "✓ Dry-run clean. No merge was performed." "clean dry-run result"
+  assert_heads_unchanged "$repo" "$worktree" "$before_primary_sha" "$before_worktree_sha"
+}
+
+test_up_sync_defaults_to_primary_current_branch() {
+  local repo worktree output before_primary_sha before_worktree_sha
+  mapfile -t _paths < <(create_sync_repo)
+  repo="${_paths[0]}"
+  worktree="${_paths[1]}"
+  before_primary_sha="$(git -C "$repo" rev-parse HEAD)"
+  before_worktree_sha="$(git -C "$worktree" rev-parse HEAD)"
+
+  output="$(cd "$worktree" && "$SYNC_SCRIPT")"
+  assert_contains "$output" "Target branch: cxi.feat.1 (primary worktree current branch)" "default target"
+  assert_contains "$output" "✓ Dry-run clean. No merge was performed." "default dry-run result"
+  assert_heads_unchanged "$repo" "$worktree" "$before_primary_sha" "$before_worktree_sha"
+}
+
+test_up_sync_refuses_when_primary_branch_differs_from_dry_run_target() {
+  local repo worktree
+  mapfile -t _paths < <(create_sync_repo)
+  repo="${_paths[0]}"
+  worktree="${_paths[1]}"
+
+  git -C "$repo" checkout -qb unrelated
+  assert_failed_sync_preserves_heads "$repo" "$worktree" "$worktree" \
+    "primary worktree is on 'unrelated', but dry-run target is 'cxi.feat.1'" \
+    --father cxi.feat.1
+}
+
+test_primary_worktree_rejects_down_sync() {
+  local repo worktree
+  mapfile -t _paths < <(create_sync_repo)
+  repo="${_paths[0]}"
+  worktree="${_paths[1]}"
+
+  assert_failed_sync_preserves_heads "$repo" "$worktree" "$repo" \
+    "this command only supports a linked worktree; DOWN sync was removed" \
+    --father cxi.feat.1
+}
+
 test_conflict_output_includes_agent_prompt
+test_clean_dry_run_does_not_merge
+test_up_sync_defaults_to_primary_current_branch
+test_up_sync_refuses_when_primary_branch_differs_from_dry_run_target
+test_primary_worktree_rejects_down_sync
 
 echo "PASS: git-worktree-sync"
