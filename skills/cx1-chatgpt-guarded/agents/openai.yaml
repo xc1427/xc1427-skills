@@ -1,0 +1,7 @@
+interface:
+  display_name: "cx1: ChatGPT Guarded"
+  short_description: "构建、安装、验证、更新或移除 ChatGPT Guarded 启动器"
+  default_prompt: "Use $cx1-chatgpt-guarded to maintain or verify the ChatGPT Guarded launcher."
+
+policy:
+  allow_implicit_invocation: true

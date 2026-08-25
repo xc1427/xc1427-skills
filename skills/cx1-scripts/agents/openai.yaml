@@ -1,0 +1,7 @@
+interface:
+  display_name: "cx1: Scripts"
+  short_description: "发现、运行并编写 ~/.local/bin 中的个人 cx1 自动化脚本"
+  default_prompt: "Use $cx1-scripts to find and run one of my personal cx1 automation scripts."
+
+policy:
+  allow_implicit_invocation: true
