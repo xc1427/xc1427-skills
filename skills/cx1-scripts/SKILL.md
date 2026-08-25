@@ -1,0 +1,120 @@
+---
+name: cx1-scripts
+description: >
+  Discover, run, and author personal cx1-* automation scripts in ~/.local/bin. Use
+  when the user invokes cx1-scripts or "/cx1-scripts", asks "what scripts do I
+  have", expresses intent that might match a personal task (e.g. "run my backup",
+  "clean up node_modules", "sync my dotfiles"), or asks how to create a cx1
+  script and follow its conventions.
+---
+
+# cx1 Scripts
+
+Run the cx1 personal script launcher. Follow these steps exactly:
+
+## Step 1 — Capture intent
+
+Note whether the user's message contains a hint about what they want to do (e.g. "backup", "sync", "clean"). Store it as INTENT. If the message is just "/cx1-scripts" with nothing else, INTENT is empty.
+
+## Step 2 — Discover scripts
+
+Run this command to collect each script's metadata:
+```bash
+for f in "$HOME/.local/bin"/cx1-*; do
+  [ -x "$f" ] || continue
+  name=$(basename "$f")
+  desc=$(grep -m1 -E '^(#|//) DESC:' "$f" 2>/dev/null | sed 's|^[#/]* *DESC: *||')
+  echo "$name|||${desc:-no description}"
+done
+```
+
+## Step 3 — Present and ask
+
+If INTENT is non-empty, fuzzy-match it against script names and DESC values and **show only matching scripts first**, followed by the rest. Otherwise show all scripts.
+
+Use AskUserQuestion to present a numbered list. For each entry show:
+- **Name**: the script name
+- **Description**: its DESC value
+
+Ask: "Which cx1 script would you like to run?"
+
+Include "Cancel" as the last option.
+
+## Step 4 — Collect arguments (if needed)
+
+Read the first 30 lines of the chosen script:
+```bash
+head -30 "$HOME/.local/bin/<chosen-script>"
+```
+
+Inspect the script's argument handling (positional `$1`/`$2`, `getopts`, `${1:?...}` guards, usage strings, etc.) and determine what inputs are required or optional. If the script takes arguments, ask the user to supply them before running. Skip this step if the script clearly takes no arguments.
+
+## Step 5 — Execute
+
+Run the chosen script, passing any collected arguments:
+```bash
+$HOME/.local/bin/<chosen-script> [args]
+```
+
+Report stdout/stderr and exit code to the user. If the script fails, summarize what went wrong.
+
+---
+
+## Authoring a new cx1 script
+
+If the user asks how to write a cx1 script, or asks you to create one, follow this template and conventions:
+
+### File naming & placement
+
+```
+~/.local/bin/cx1-<verb>[-<noun>]
+```
+
+Examples: `cx1-backup-dotfiles`, `cx1-clean-nodemodules`, `cx1-sync-notes`
+
+### Required header block
+
+Every cx1 script must include a `DESC` comment on line 2 (right after the shebang). The launcher discovers it with `grep -E '^(#|//) DESC:'`, so both `#` and `//` comment styles are supported.
+
+**Bash / shell scripts:**
+```bash
+#!/usr/bin/env bash
+# DESC: One-line human-readable description of what this script does
+set -euo pipefail
+```
+
+**Node.js scripts:**
+```js
+#!/usr/bin/env node
+// DESC: One-line human-readable description of what this script does
+```
+
+- `DESC` is displayed in the launcher menu — keep it under ~70 characters.
+- For bash scripts, `set -euo pipefail` is mandatory — it makes the script fail fast on errors, unset variables, and broken pipes.
+- Argument requirements are inferred by the AI from the script body itself — use clear patterns like `${1:?Usage: cx1-foo <arg>}` or a usage block so the AI can read them correctly.
+
+### Body conventions
+
+- Use `"$HOME"` not `~` inside scripts (tilde is not expanded in all contexts).
+- Print progress with `echo` or `printf`; send errors to stderr: `echo "Error: ..." >&2`.
+- Exit with a non-zero code on failure: `exit 1`.
+- Keep scripts single-purpose — one script, one job.
+
+### Make it executable
+
+After creating the file, run:
+```bash
+chmod +x "$HOME/.local/bin/cx1-<name>"
+```
+
+### Minimal example
+
+```bash
+#!/usr/bin/env bash
+# DESC: Say hello to a person
+# ARGS: <name>
+set -euo pipefail
+
+name="${1:?Usage: cx1-hello <name>}"
+echo "Hello, $name!"
+```
