@@ -1,7 +1,0 @@
-interface:
-  display_name: "c14: Brainstorm"
-  short_description: "显式进行轻量需求澄清、方案比较、设计确认与决策收敛"
-  default_prompt: "使用 $c14-brainstorm 与我逐题澄清需求、比较方案并收敛设计；先不要实现、写文件或生成计划。"
-
-policy:
-  allow_implicit_invocation: false
