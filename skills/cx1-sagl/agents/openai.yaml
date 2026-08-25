@@ -1,0 +1,7 @@
+interface:
+  display_name: "cx1: SAGL"
+  short_description: "将当前任务委派给 GPT-5.6 Luna 子代理执行"
+  default_prompt: "使用 $cx1-sagl 将我当前指派的工作委派给 Luna 子代理完成。"
+
+policy:
+  allow_implicit_invocation: false
