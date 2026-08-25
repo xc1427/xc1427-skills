@@ -1,0 +1,4 @@
+interface:
+  display_name: "c14: Tibo Posts"
+  short_description: "Summarize Tibo posts from the past three days"
+  default_prompt: "Use $c14-tibo-post to summarize Tibo's substantive X posts from today, yesterday, and the day before."

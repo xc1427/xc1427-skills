@@ -1,9 +1,9 @@
 ---
-name: xi-community-regression-research
+name: c14-community-regression-research
 description: Use when the user asks to search GitHub, issue trackers, discussions, Reddit, Stack Overflow, Hacker News, forums, or other online communities to find whether a specific bug, regression, behavior, error, product issue, or rumor is reported elsewhere.
 ---
 
-# xi: Community Regression Research
+# c14: Community Regression Research
 
 Use this skill to answer prompts like:
 

@@ -1,6 +1,6 @@
 ---
-name: xi-brainstorm
-description: 轻量、显式的设计讨论工作流。仅当用户明确调用 xi-brainstorm，或明确要求先 brainstorm、逐题澄清、比较方案并暂不实现时使用。适合在功能、架构、工作流或交互方案进入实现前，收敛目标、约束、关键决策、边界与验收标准。
+name: c14-brainstorm
+description: 轻量、显式的设计讨论工作流。仅当用户明确调用 c14-brainstorm，或明确要求先 brainstorm、逐题澄清、比较方案并暂不实现时使用。适合在功能、架构、工作流或交互方案进入实现前，收敛目标、约束、关键决策、边界与验收标准。
 ---
 
 # 轻量 Brainstorm

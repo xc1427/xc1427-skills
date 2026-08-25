@@ -19,8 +19,9 @@ Each skill is a Markdown file with YAML front matter (`name`, `description`) fol
 | [c14-chatgpt-guarded](skills/c14-chatgpt-guarded/SKILL.md) | Install and maintain the scoped ChatGPT Guarded macOS launcher |
 | [c14-git-worktree](skills/c14-git-worktree/SKILL.md) | Git worktree management — create, delete, sync commits across worktrees, and install standalone scripts to `~/.local/bin` |
 | [c14-man-tongue](skills/c14-man-tongue/SKILL.md) | Rewrite or draft concise, sharp, human prose with controlled rough edges |
-| [xi-brainstorm](skills/xi-brainstorm/SKILL.md) | Explicit design discussion, option comparison, and decision convergence |
-| [xi-community-regression-research](skills/xi-community-regression-research/SKILL.md) | Find public reports of bugs or regressions |
+| [c14-brainstorm](skills/c14-brainstorm/SKILL.md) | Explicit design discussion, option comparison, and decision convergence |
+| [c14-community-regression-research](skills/c14-community-regression-research/SKILL.md) | Find public reports of bugs or regressions |
+| [c14-tibo-post](skills/c14-tibo-post/SKILL.md) | Summarize Tibo Sottiaux's substantive X posts from the past three days |
 
 ## Install
 
