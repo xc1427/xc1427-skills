@@ -1,5 +1,5 @@
 interface:
-  display_name: "CX1 AFK"
+  display_name: "cx1: AFK"
   short_description: "AFK 期间锁定浏览器通道，并在需要人工干预时通过钉钉通知"
   default_prompt: "Use $cx1-afk to keep this session working safely while I am AFK."
 

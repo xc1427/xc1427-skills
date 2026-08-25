@@ -1,5 +1,5 @@
 interface:
-  display_name: "CX1 Bear Notes"
+  display_name: "cx1: Bear Notes"
   short_description: "通过 Bear Notes MCP 读取、搜索和操作熊掌记内容"
   default_prompt: "Use $cx1-bear-notes to read or manage this Bear note through the Bear Notes MCP."
 
