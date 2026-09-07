@@ -1,6 +1,6 @@
 ---
 name: cx1-afk
-description: Temporarily keep the current session working while the user is AFK, route necessary browser interaction through Chrome control or the in-app browser with Computer Use on regular Chrome as a last resort, and notify the user through dws when human intervention is required. Activate only when the user explicitly invokes cx1-afk; never infer it from casual mentions of being away, delayed replies, or unattended work.
+description: Temporarily keep the current session working while the user is AFK, route necessary browser interaction through Codex Computer Use on regular Chrome or the in-app browser, and notify the user through dws when human intervention is required. Activate only when the user explicitly invokes cx1-afk; never infer it from casual mentions of being away, delayed replies, or unattended work.
 ---
 
 # CX1 AFK
@@ -16,12 +16,10 @@ Apply these rules only to the current session's active AFK window.
 ## Route browser work
 
 - Continue to prefer an applicable connector, API, or CLI when the task does not require browser interaction.
-- When browser interaction is necessary, start with one of these preferred skills and follow its full instructions:
-  - `chrome:control-chrome` for the user's regular Chrome and its existing signed-in state.
-  - `browser:control-in-app-browser` for the built-in in-app browser.
-- Only when both preferred browser-control skills are unavailable and browser interaction remains necessary, load `computer-use:computer-use` and use it to operate the regular Chrome app (`com.google.Chrome`) as the final fallback. Follow its full instructions and confirmation policy.
+- When browser interaction is necessary, use the current Computer Use browser-control surface exposed by Codex Desktop (`mcp__cua_repl` in the current app). Follow the documentation returned by its initialization call rather than loading a separate browser-control skill.
+- Honor any browser or tab explicitly named or mentioned by the user. Otherwise, use regular Chrome (`chrome`) for external or authenticated sites so its existing signed-in state remains available, and use the in-app browser (`iab`) for local targets or when the user explicitly requested it. When the runtime requires it, inspect available surfaces with `cua.getState()` or let `cua.getBrowser({ url })` select the browser, then continue through the returned tab/browser handle.
 - Never use Chrome Beta during the AFK window. This prohibition includes `chrome-devtools`, `chrome-devtools-cli`, or any other route that launches or attaches to Chrome Beta.
-- Do not substitute standalone Playwright or another browser surface when the two preferred paths and the Computer Use fallback are unavailable. Continue non-browser work and treat a required browser action as an intervention blocker.
+- If the current Computer Use surface is unavailable, do not substitute standalone Playwright or another browser surface. Continue non-browser work and treat a required browser action as an intervention blocker.
 
 ## Notify the user when intervention is required
 
