@@ -1,6 +1,6 @@
 interface:
   display_name: "cx1: AFK"
-  short_description: "AFK 期间锁定浏览器通道，并在需要人工干预时通过钉钉通知"
+  short_description: "AFK 期间用当前 Computer Use 路由浏览器，并在需要人工干预时通过钉钉通知"
   default_prompt: "Use $cx1-afk to keep this session working safely while I am AFK."
 
 policy:
