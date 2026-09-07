@@ -16,8 +16,8 @@ Apply these rules only to the current session's active AFK window.
 ## Route browser work
 
 - Continue to prefer an applicable connector, API, or CLI when the task does not require browser interaction.
-- When browser interaction is necessary, use the current Computer Use browser-control surface exposed by Codex Desktop (`mcp__cua_repl` in the current app). Follow the documentation returned by its initialization call rather than loading a separate browser-control skill.
-- Honor any browser or tab explicitly named or mentioned by the user. Otherwise, use regular Chrome (`chrome`) for external or authenticated sites so its existing signed-in state remains available, and use the in-app browser (`iab`) for local targets or when the user explicitly requested it. When the runtime requires it, inspect available surfaces with `cua.getState()` or let `cua.getBrowser({ url })` select the browser, then continue through the returned tab/browser handle.
+- When browser interaction is necessary, use the browser-control capability available in the current Codex runtime and follow its runtime instructions.
+- Honor any browser or tab explicitly named or mentioned by the user. Otherwise, use regular Chrome for external or authenticated sites so its existing signed-in state remains available, and use the in-app browser for local targets or when the user explicitly requested it.
 - Never use Chrome Beta during the AFK window. This prohibition includes `chrome-devtools`, `chrome-devtools-cli`, or any other route that launches or attaches to Chrome Beta.
 - If the current Computer Use surface is unavailable, do not substitute standalone Playwright or another browser surface. Continue non-browser work and treat a required browser action as an intervention blocker.
 
