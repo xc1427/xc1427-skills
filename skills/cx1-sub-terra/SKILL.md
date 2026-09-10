@@ -1,6 +1,6 @@
 ---
-name: sub-terra
-description: 显式将用户当前指派的工作委派给一个 GPT-5.6 Terra 子代理。仅当用户明确调用 sub-terra 时使用；reasoning effort 默认 high，用户显式指定时覆盖。
+name: cx1-sub-terra
+description: 显式将用户当前指派的工作委派给一个 GPT-5.6 Terra 子代理。仅当用户明确调用 cx1-sub-terra 时使用；reasoning effort 默认 high，用户显式指定时覆盖。
 ---
 
 # CX1 Spawn Agent by Terra

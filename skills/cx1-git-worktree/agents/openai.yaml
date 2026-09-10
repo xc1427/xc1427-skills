@@ -1,7 +1,7 @@
 interface:
   display_name: "cx1: Git Worktree"
-  short_description: "创建、查看和安全清理由 cx1 管理的 Git worktree"
-  default_prompt: "Use $cx1-git-worktree to create, inspect, or safely remove a Git worktree."
+  short_description: "手工调用，管理用户通过本技能维护的 worktree，不接管 Codex 工作区"
+  default_prompt: "Use $cx1-git-worktree to manage only my explicitly cx1-maintained worktrees, excluding worktrees created through Codex."
 
 policy:
   allow_implicit_invocation: false
