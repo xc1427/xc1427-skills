@@ -1,8 +1,15 @@
 ---
 name: cx1-git-worktree
-description: Git worktree 管理参考手册。当用户明确要求操作 worktree（创建、删除、查看）时触发。
+description: 仅在用户显式调用 cx1-git-worktree 时使用，管理用户通过本技能维护的 Git worktree。不因普通 worktree 操作或代码迁移请求自动触发，不接管 Codex 界面创建的临时或长期 worktree。
 ---
 
+## 调用与管理范围
+
+- 仅接受用户主动选择本技能、使用 `$cx1-git-worktree`，或明确要求使用本技能。仅提到技能名称、询问或修改技能，不表示授权执行 worktree 操作。
+- 普通的创建、查看、删除、合并、迁移改动请求，以及“可自行判断是否开 worktree”的授权，均不自动触发本技能；这些操作按当前任务的常规 Git 或产品工作区流程处理。
+- 本技能管理的是用户主动通过本技能脚本或所配置的 Claude Code hook 建立并维护的 worktree。Codex 界面创建的 worktree，无论临时或长期，都不属于本技能管理范围；其他由 Agent 自行创建的 worktree 也不自动纳入。
+- 操作已有目标前，核对创建来源和本技能记录的 CX1 元数据；目录位置、分支前缀、当前工作目录或出现在 `git worktree list` 中，都不是管理归属的证明。没有元数据的旧目标，须由用户明确确认其属于本技能维护的 worktree，否则不调用本技能脚本操作它，也不补写标记将其自动纳管。
+- 显式调用只决定使用哪套流程，不扩大本次授权：查看不附带创建或清理，迁移改动不附带删除工作区。以下所有操作指引均受此范围约束。
 
 ## 工作原理（Claude Code 集成）
 
@@ -16,7 +23,7 @@ description: Git worktree 管理参考手册。当用户明确要求操作 workt
 6. 自动复制 `.env`（如存在）到新 worktree
 7. Claude 的工作目录切换到新 worktree
 
-**幂等性**：若目标目录或分支已存在，创建脚本会自动复用，不报错。
+**幂等性**：若目标目录或分支已存在，创建脚本会自动复用，不报错。因此调用前必须确认同名目标属于本技能管理范围；不得借复用行为接管 Codex 或其他来源的 worktree。
 
 `WorktreeRemove` hook 按照预期应该**不配置** — 会话退出时不会自动删除 worktree，需手动清理。
 
@@ -88,7 +95,7 @@ bash <skill-base-dir>/scripts/git-worktree-remove.sh ../myproject-feat-x
 
 这个删除逻辑不从目录名推导分支名，也不关心 worktree 是从 primary checkout 还是某个 linked worktree 创建出来的。Git 视角下所有 linked worktree 都按同一个 repository 的平级登记项处理，所以类似 `figo-browser-parallel-work-debug-device-simulation` 这样的路径会依据创建元数据清理真实分支 `cxi/worktree/debug-device-simulation`，不会误推导成 `cxi/worktree/parallel-work-debug-device-simulation`。
 
-**你可以直接代为执行**删除操作，无需用户确认（除非 worktree 有未提交的改动）。
+仅当用户显式调用本技能并要求删除、目标归属已确认且没有未提交改动时，才可直接执行，无需重复确认。仅要求查看或迁移改动时不得顺带删除。
 
 **手动（只删 worktree，不删分支）：**
 ```bash
@@ -99,6 +106,8 @@ git worktree prune   # 手动 rm -rf 后清理残留条目
 ---
 
 ### 查看 worktree
+
+下面命令列出整个仓库的 worktree，并不是本技能的管理清单。仅将已确认由本技能维护的条目列为管理对象；其他条目不纳管、不清理。
 
 ```bash
 git worktree list
