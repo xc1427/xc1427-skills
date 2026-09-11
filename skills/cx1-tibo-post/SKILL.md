@@ -12,17 +12,9 @@ description: Read and summarize X posts by Tibo Sottiaux (@thsottiaux) from only
 ## 获取路径
 
 1. 直接使用已登录的 Chrome。默认认为没有可用的 X connector/API：不要为发现它做 tool search、connector 列表或网络探测。只有用户明确给出一个已启用的 X connector/API 时，才使用该路径。
-2. 此工作流依赖 Chrome 的登录态。调用 `chrome:control-chrome` 后，按其文档选择 Chrome extension 会话；不要用 URL 自动选择或默认浏览器，以免落到未登录的 in-app Browser。完整遵循该 Skill 的初始化、认证和安全规则。
-3. 若 Chrome 未登录、连接失败或 X 阻止访问，不要改用搜索引擎、第三方镜像或公开抓取路径来绕过；请用户在 Chrome 登录后重试。
-4. Chrome Skill 的运行文件位于插件根目录，而不是 Skill 目录：
-
-   ```text
-   Skill:   <plugin-root>/skills/control-chrome/SKILL.md
-   Runtime: <plugin-root>/scripts/browser-client.mjs
-   ```
-
-   从 `SKILL.md` 向上定位到 `<plugin-root>` 后再导入 runtime。绝不要拼成 `<plugin-root>/skills/control-chrome/scripts/browser-client.mjs`，也不要仅因这个错误路径不存在就报告插件损坏。
-5. 打开 `https://x.com/thsottiaux` 的 **Posts** 时间线；只读取 Tibo 自己的原帖。
+2. 使用当前运行环境可用、能连接用户当前主 Chrome（正式版）现有会话的浏览器控制能力，复用其登录态，并遵循该能力的初始化文档。此工作流不使用 `chrome-devtools`、`chrome-devtools-cli`、Chrome Beta、独立自动化 profile 或 in-app Browser；这是本 Skill 对通用浏览器选择规则的专门约定。显式选择主 Chrome 会话并检查 X 登录态，不要用 URL 自动选择或默认浏览器。不要将某个固定插件名或 runtime 文件路径作为前置依赖。
+3. 仅缺少某个浏览器插件或 Skill 时，先检查当前可用且符合上述规则的浏览器控制方式；这不等于 Chrome 无法访问。若实际连接失败、Chrome 未登录或 X 阻止访问，说明具体原因和需要用户完成的动作；不要改用搜索引擎、第三方镜像或公开抓取路径绕过。
+4. 打开 `https://x.com/thsottiaux` 的 **Posts** 时间线；只读取 Tibo 自己的原帖。
 
 ## 高效读取
 
@@ -30,7 +22,7 @@ description: Read and summarize X posts by Tibo Sottiaux (@thsottiaux) from only
 2. 以用户所在时区的当前日期确定窗口。相对时间（如 `1h`）只用于定位，不能作为日期判断；遇到候选项再打开其状态详情页取得精确时间。时间线已按时间倒序时，读到第一个窗口外的**非置顶**原帖即可停止，不再继续翻历史。
 3. 只为最终会报告的公告/预告打开详情页，以核对全文、精确时间和永久链接。没有正文的配图帖仅在图片可能改变其“实质信息”判定时做一次定向截图；没有必要就不要打开。
 4. 指标或范围写在配图中时，先读取配图再总结。用“发帖称”或“图中称”表述该帖自身的主张；不得把合计指标改写为单产品指标，也不得从模糊数字推断统计口径。
-5. 完成后关闭本次创建的查询页；若浏览器能力支持，按浏览器 Skill 的要求 finalize tabs。
+5. 完成后关闭本次创建的查询页；保留用户原有标签页，并遵循所用浏览器能力的清理要求。
 
 ## 筛选与判断
 
