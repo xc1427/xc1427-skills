@@ -1,0 +1,7 @@
+interface:
+  display_name: "cx1: Instruct Sync"
+  short_description: "Explicitly sync personal instructions to their Git remote"
+  default_prompt: "Use $cx1-instruct-sync to commit and push my local personal instructions according to the repository's sync rules."
+
+policy:
+  allow_implicit_invocation: false
