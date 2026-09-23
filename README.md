@@ -17,7 +17,7 @@ Each skill is a Markdown file with YAML front matter (`name`, `description`) fol
 | [cx1-instruct-sync](skills/cx1-instruct-sync/SKILL.md) | Explicitly commit and push personal instructions using repository-local sync rules |
 | [cx1-scripts](skills/cx1-scripts/SKILL.md) | Personal cx1-* script launcher — discover, run, and author scripts in `~/.local/bin` |
 | [cx1-afk](skills/cx1-afk/SKILL.md) | Keep the current session working safely while the user is temporarily AFK |
-| [cx1-chatgpt-guarded](skills/cx1-chatgpt-guarded/SKILL.md) | Install and maintain the scoped ChatGPT Guarded macOS launcher |
+| [cx1-chatgpt-guarded](skills/cx1-chatgpt-guarded/SKILL.md) | Install and maintain the ChatGPT Guarded macOS launcher |
 | [cx1-git-worktree](skills/cx1-git-worktree/SKILL.md) | Git worktree management — create, delete, sync commits across worktrees, and install standalone scripts to `~/.local/bin` |
 | [cx1-man-tongue](skills/cx1-man-tongue/SKILL.md) | Rewrite or draft concise, sharp, human prose with controlled rough edges |
 | [cx1-brainstorm](skills/cx1-brainstorm/SKILL.md) | Explicit design discussion, option comparison, and decision convergence |
