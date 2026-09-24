@@ -1,0 +1,3 @@
+interface:
+  display_name: "cx1-yuque"
+  short_description: "通过 CLI 操作公网语雀，优先 Open API 并补充关键网页能力"

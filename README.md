@@ -14,6 +14,7 @@ Each skill is a Markdown file with YAML front matter (`name`, `description`) fol
 
 | Skill | Description |
 |-------|-------------|
+| [cx1-yuque](skills/cx1-yuque/SKILL.md) | Unified standalone Yuque CLI: direct Open/Web API workflows, explicit sessions, and project-local latest official CLI fallback |
 | [cx1-instruct-sync](skills/cx1-instruct-sync/SKILL.md) | Explicitly commit and push personal instructions using repository-local sync rules |
 | [cx1-scripts](skills/cx1-scripts/SKILL.md) | Personal cx1-* script launcher — discover, run, and author scripts in `~/.local/bin` |
 | [cx1-afk](skills/cx1-afk/SKILL.md) | Keep the current session working safely while the user is temporarily AFK |
