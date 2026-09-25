@@ -7,6 +7,17 @@
 
 ## Skill Authoring Guidelines
 
+### Keep invocation policy aligned across Codex and Claude Code
+
+When a skill is available in both Codex and Claude Code, keep implicit invocation behavior aligned in both clients. Codex reads `policy.allow_implicit_invocation` from `agents/openai.yaml`. Claude Code's equivalent is `skillOverrides.<skill-name>` in settings, with the opposite polarity:
+
+| Intended behavior | Codex `allow_implicit_invocation` | Claude Code setting |
+| --- | --- | --- |
+| Allow automatic invocation | `true` or omitted | No `skillOverrides` entry |
+| Require explicit invocation | `false` | `skillOverrides.<skill-name>: "user-invocable-only"` |
+
+Claude Code's equivalent frontmatter field is `disable-model-invocation` with the opposite polarity, but do not put it in shared `SKILL.md` frontmatter: Codex's skill validator rejects that non-standard key. Use the settings override instead. Do not use `user-invocable: false`; it controls slash-menu visibility, not automatic invocation.
+
 ### Prefer independent scripts over agent-dependent ones
 
 When writing functionality for a skill, favor **standalone shell scripts** that can be invoked directly without requiring an agentic session. A script is standalone if:
