@@ -67,6 +67,10 @@ test("URL parsing and strict CLI inputs reject ambiguity before requests", () =>
     parse(["sheet", "set", "1", "--cells", '{"AA3":42}']).o.cells,
     { AA3: 42 },
   );
+  assert.equal(
+    parse(["doc", "patch", "1", "--expected-sha256", "abc"]).o.expectedSha256,
+    "abc",
+  );
 });
 test("pagination keeps pins, advances by returned count and fails on stalled pages", async () => {
   const urls = [];

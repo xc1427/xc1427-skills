@@ -57,7 +57,7 @@ export function parse(argv) {
   const o = {};
   while (args.length) {
     let k = args.shift();
-    if (!/^--[a-z][a-z-]*$/.test(k)) fail("INPUT", "参数使用 --key value。");
+    if (!/^--[a-z][a-z0-9-]*$/.test(k)) fail("INPUT", "参数使用 --key value。");
     let raw = k.slice(2),
       negative = raw.startsWith("no-");
     if (negative) raw = raw.slice(3);
