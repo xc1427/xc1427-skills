@@ -1,15 +1,15 @@
 ---
 name: cx1-sub-terra
-description: 显式将用户当前指派的工作委派给一个 GPT-5.6 Terra 子代理。仅当用户明确调用 cx1-sub-terra 时使用；reasoning effort 默认 high，用户显式指定时覆盖。
+description: 显式将用户当前指派的工作委派给一个 GPT-6 Sol 子代理。仅当用户明确调用 cx1-sub-terra 时使用；reasoning effort 默认 high，用户显式指定时覆盖。
 ---
 
-# CX1 Spawn Agent by Terra
+# CX1 Spawn Agent by Sol
 
-把用户当前指派的完整工作交给一个新的 Terra 子代理执行。
+把用户当前指派的完整工作交给一个新的 Sol 子代理执行。
 
 ## 委派
 
-1. 调用 `spawn_agent`，将 `model` 固定为 `gpt-5.6-terra`。
+1. 调用 `spawn_agent`，将 `model` 固定为 `gpt-6-sol`。
 2. 用户显式指定 reasoning effort 时使用该值；否则使用 `high`。
 3. 优先使用 `fork_turns: "none"`，并在 `message` 中写出自包含的任务说明，包括目标、相关路径、约束、已知状态、验证要求和预期交付物。
 4. 只有任务确实依赖最近对话且无法简洁转述时，才使用足以覆盖所需上下文的最小正整数 `fork_turns`。不得使用 `fork_turns: "all"`，因为完整历史 fork 不能覆盖模型或 reasoning effort。
