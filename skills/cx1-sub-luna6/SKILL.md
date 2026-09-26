@@ -14,6 +14,14 @@ description: 显式将用户当前指派的工作委派给一个 GPT-6 Luna 子�
 3. 优先使用 `fork_turns: "none"`，并在 `message` 中写出自包含的任务说明，包括目标、相关路径、约束、已知状态、验证要求和预期交付物。
 4. 只有任务确实依赖最近对话且无法简洁转述时，才使用足以覆盖所需上下文的最小正整数 `fork_turns`。不得使用 `fork_turns: "all"`，因为完整历史 fork 不能覆盖模型或 reasoning effort。
 
+## Fast 模式
+
+GPT-6 Luna 支持 Codex 界面中的 Fast 模式；可用时优先使用，ChatGPT 额度消耗为标准模式的 2.5 倍。参见 [Codex Speed](https://learn.chatgpt.com/docs/agent-configuration/speed)。
+
+当前 `spawn_agent` 没有独立设置 Fast 的参数，子代理通过会话配置继承父会话的服务档位。需要 Fast 时，在 Codex 界面开启后再委派；CLI 可使用 `/fast on`。仅在子代理的 `message` 中要求开启 Fast 不会改变服务档位。
+
+本技能不自动修改全局配置或切换父会话的模式。只有能读取实际服务档位时才确认 Fast 已启用；无法读取时说明未验证，不要把成功启动子代理当作 Fast 生效的证据。
+
 ## 收敛结果
 
 - 主代理负责协调，不要与子代理重复实现同一工作。
