@@ -1,6 +1,7 @@
 ---
 name: cx1-man-tongue
 description: 仅在用户显式调用 `$cx1-man-tongue`、点名 `cx1-man-tongue` 或明确要求使用这个 Skill 时使用。用于生成或改写简短、锋利、有人味的中文，如进展汇报、工作判断、内部沟通、回复和短文案；压缩枝节，突出主线，并加入受控的断句、省略与语义跳跃。禁止隐式触发。
+disable-model-invocation: true
 ---
 
 # CX1 Man Tongue

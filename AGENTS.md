@@ -9,14 +9,14 @@
 
 ### Keep invocation policy aligned across Codex and Claude Code
 
-When a skill is available in both Codex and Claude Code, keep implicit invocation behavior aligned in both clients. Codex reads `policy.allow_implicit_invocation` from `agents/openai.yaml`. Claude Code's equivalent is `skillOverrides.<skill-name>` in settings, with the opposite polarity:
+When a skill is available in both Codex and Claude Code, keep implicit invocation behavior aligned in both clients. Codex reads `policy.allow_implicit_invocation` from `agents/openai.yaml`; Claude Code reads `disable-model-invocation` from `SKILL.md` frontmatter, with the opposite polarity:
 
-| Intended behavior | Codex `allow_implicit_invocation` | Claude Code setting |
+| Intended behavior | Codex `allow_implicit_invocation` | Claude Code `disable-model-invocation` |
 | --- | --- | --- |
-| Allow automatic invocation | `true` or omitted | No `skillOverrides` entry |
-| Require explicit invocation | `false` | `skillOverrides.<skill-name>: "user-invocable-only"` |
+| Allow automatic invocation | `true` or omitted | `false` or omitted |
+| Require explicit invocation | `false` | `true` |
 
-Claude Code's equivalent frontmatter field is `disable-model-invocation` with the opposite polarity, but do not put it in shared `SKILL.md` frontmatter: Codex's skill validator rejects that non-standard key. Use the settings override instead. Do not use `user-invocable: false`; it controls slash-menu visibility, not automatic invocation.
+Codex's bundled `quick_validate.py` currently rejects Claude Code's field as non-standard frontmatter. When shared source must enforce the same policy in both clients, keep the Claude field in `SKILL.md` and treat that specific validator diagnostic as a known limitation. For a machine-local override without changing shared source, Claude Code also supports `skillOverrides.<skill-name>: "user-invocable-only"`. Do not use `user-invocable: false`; it controls slash-menu visibility, not automatic invocation.
 
 ### Prefer independent scripts over agent-dependent ones
 

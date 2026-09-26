@@ -1,6 +1,7 @@
 ---
 name: cx1-afk
 description: Temporarily keep the current session working while the user is AFK, route necessary browser interaction through Codex Computer Use on regular Chrome or the in-app browser, and notify the user through dws when human intervention is required. Activate only when the user explicitly invokes cx1-afk; never infer it from casual mentions of being away, delayed replies, or unattended work.
+disable-model-invocation: true
 ---
 
 # CX1 AFK

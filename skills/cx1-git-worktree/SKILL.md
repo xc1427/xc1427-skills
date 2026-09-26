@@ -1,6 +1,7 @@
 ---
 name: cx1-git-worktree
 description: 仅在用户显式调用 cx1-git-worktree 时使用，管理用户通过本技能维护的 Git worktree。不因普通 worktree 操作或代码迁移请求自动触发，不接管 Codex 界面创建的临时或长期 worktree。
+disable-model-invocation: true
 ---
 
 ## 调用与管理范围

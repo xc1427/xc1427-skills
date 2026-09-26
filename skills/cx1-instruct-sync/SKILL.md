@@ -1,6 +1,7 @@
 ---
 name: cx1-instruct-sync
 description: 仅当用户明确调用 cx1-instruct-sync 时使用；将个人指令仓库中的本地变更提交并推送到远端。普通指令编辑不触发此技能。
+disable-model-invocation: true
 ---
 
 # 同步个人指令
