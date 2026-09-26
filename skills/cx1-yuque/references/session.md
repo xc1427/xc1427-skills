@@ -22,7 +22,7 @@ yq session status
 
 如果当前浏览器插件允许读取 Chrome Cookie，可通过其支持的 CDP `Network.getCookies`（URL 限定 `https://www.yuque.com/`）取得两项 Cookie。不要将结果打印到工具输出；在浏览器运行时内组合 header，再用下面的一次性接收入口导入。浏览器插件的虚拟剪贴板不一定与 pbpaste 相通，不依赖它传递凭据。只在用户已授权语雀登录会话使用的范围内执行；不要扫描其他站点或读取 Chrome 数据库/钥匙串。
 
-浏览器工具不可用时，明确让用户完成上面的复制与导入步骤。不要把 session 阻塞扩大为 Open API 阻塞：已有 Token 的独立工作可以继续。
+浏览器工具不可用时，明确让用户完成上面的复制与导入步骤。本技能所有远端操作都需要有效 session；不能改用 Token。
 
 ## 失效处理
 

@@ -1,7 +1,7 @@
 import { fail } from "./core.mjs";
 import { parseTarget, describeUrl } from "./runtime.mjs";
 import { document, catalog } from "./documents.mjs";
-import { openCommand } from "./open-commands.mjs";
+import { webCommand } from "./web-commands.mjs";
 import { sheetCommand } from "./sheets.mjs";
 import { tableCommand } from "./tables.mjs";
 import { extras } from "./extras.mjs";
@@ -19,7 +19,7 @@ export const commands = {
   "book update": "name slug description public input",
   "book delete": "yes",
   search: "type scope creator page all raw",
-  "search web": "type scope creator offset limit input",
+  "search web": "type scope creator page input",
   "doc list": "offset limit all raw",
   "doc read": "book format page pageSize",
   "doc inspect": "book raw",
@@ -32,6 +32,7 @@ export const commands = {
   "doc publish": "book force notify",
   "doc copy": "book to target position",
   "doc move": "book to target position",
+  "doc export": "book type download",
   "doc versions": "book",
   "doc version": "",
   "toc list": "via",
@@ -64,7 +65,7 @@ export const commands = {
   "sheet write": "book sheet body rows input expectedSha256",
   "sheet append": "book sheet body rows input expectedSha256",
   "sheet export": "book type download",
-  "table read": "book page pageSize",
+  "table read": "book sheet page pageSize",
   "table schema": "book sheet view raw",
   "table records": "book sheet view",
   "table record add": "book sheet view values input",
@@ -88,8 +89,8 @@ export const commands = {
   "stats books": "offset limit input",
   "stats docs": "offset limit input",
   "resource get": "doc book input",
-  "resource create": "doc book type dsl after input",
-  "resource update": "doc book dsl body input",
+  "resource create": "doc book type dsl after input expectedSha256",
+  "resource update": "doc book dsl body input expectedSha256",
   "url parse": "",
   resolve: "book",
   "session import": "account expires",
@@ -97,7 +98,6 @@ export const commands = {
   "session status": "",
   "session forget": "",
   batch: "input",
-  "api open": "input",
   "api web": "input",
 };
 export function validate(name, o) {
@@ -119,32 +119,8 @@ export function validate(name, o) {
 }
 export async function dispatch(r, name, target, o = {}) {
   validate(name, o);
-  if (o.via && !["open", "web"].includes(o.via))
-    fail("INPUT", "via 仅支持 open/web。");
-  r.webContext =
-    o.via === "web" ||
-    [
-      "user books",
-      "user recent",
-      "mark list",
-      "mark tags",
-      "note tags",
-      "note tag-stats",
-      "search web",
-      "attachment upload",
-      "api web",
-    ].includes(name) ||
-    (name === "note list" && (o.q || o.filterType || o.order)) ||
-    [
-      "doc copy",
-      "doc move",
-      "doc publish",
-      "comment list",
-      "comment create",
-    ].includes(name) ||
-    (name.startsWith("table ") && name !== "table read") ||
-    (name.startsWith("sheet ") && name !== "sheet read") ||
-    ["toc copy", "toc transfer", "toc batch", "toc destroy"].includes(name);
+  if (o.via && o.via !== "web")
+    fail("INPUT", "仅支持 --via web；Open API 已移除。");
   const parts = name.split(" "),
     [group, action] = parts;
   if (name === "url parse") return r.result(describeUrl(target));
@@ -158,7 +134,7 @@ export async function dispatch(r, name, target, o = {}) {
   }
   if (group === "api") {
     const [method, path] = target;
-    if (!method || !path) fail("INPUT", "api open/web METHOD /api/...");
+    if (!method || !path) fail("INPUT", "api web METHOD /api/...");
     if (action === "web") await r.preflightWeb();
     return r.result(
       await r.request(action, method.toUpperCase(), path, o.input),
@@ -182,5 +158,5 @@ export async function dispatch(r, name, target, o = {}) {
     ].includes(name)
   )
     return extras(r, group, action, target, o);
-  return openCommand(r, group, action, target, o);
+  return webCommand(r, group, action, target, o);
 }

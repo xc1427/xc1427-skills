@@ -44,14 +44,12 @@ test("credentials cannot route off origin or across API modes", () => {
     "/api/../evil",
     "/api/%2e%2e/evil",
     "/api/x#foo",
+    "/api/v%32/user",
   ])
     assert.throws(() => safePath(p, "web"));
   assert.throws(() => safePath("/api/v2/user", "web"));
   assert.throws(() => safePath("/api/mine", "open"));
-  assert.equal(
-    safePath("/api/v2/user", "open"),
-    "https://www.yuque.com/api/v2/user",
-  );
+  assert.throws(() => safePath("/api/v2/user", "open"));
 });
 test("web account preflight prevents wrong-account mutations", async () => {
   let calls = 0;
@@ -78,29 +76,31 @@ test("redirect, HTML, business errors fail without retry", async () => {
   ]) {
     let calls = 0;
     const c = new Client({
-      mode: "open",
-      token: "fixture",
+      mode: "web",
+      session,
       fetcher: async () => {
         calls++;
         return response;
       },
     });
-    await assert.rejects(c.request("POST", "/api/v2/repos/1/docs", {}));
+    c.checked = true;
+    await assert.rejects(c.request("POST", "/api/docs", {}));
     assert.equal(calls, 1);
   }
 });
 test("network failures do not retry mutations or echo transport errors", async () => {
   let calls = 0;
   const c = new Client({
-    mode: "open",
-    token: "fixture",
+    mode: "web",
+    session,
     fetcher: async () => {
       calls++;
       throw Error("credential");
     },
   });
+  c.checked = true;
   await assert.rejects(
-    c.request("PUT", "/api/v2/repos/1/docs/2", {}),
+    c.request("PUT", "/api/docs/2", {}),
     (e) => e.code === "NETWORK_UNKNOWN" && !e.message.includes("credential"),
   );
   assert.equal(calls, 1);

@@ -120,7 +120,10 @@ export async function extras(r, group, action, target, o) {
   const p = { ...(o.input || {}) };
   for (const k of ["offset", "limit", "type", "scope", "creator"])
     if (o[k] !== undefined) p[k] = o[k];
-  if (name === "search.web") p.q = target;
+  if (name === "search.web") {
+    p.q = target;
+    p.p = o.page || p.p || 1;
+  }
   const req = prepare(name, p);
   const response = await r.request("web", req.method, req.path);
   return r.result(response.data ?? response);

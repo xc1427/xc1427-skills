@@ -1,6 +1,6 @@
 # 目录与跨库
 
-库内操作直接 Open API。跨库复制/迁移/批量用 Web API，并共享同一 Web 上下文解析与回验。`toc list/tree BOOK` 返回 UUID；文档 ID 不能替代节点 UUID。
+库内及跨库复制/迁移/批量全部用 Web API，共享同一会话解析与回验。`toc list/tree BOOK` 返回 UUID；文档 ID 不能替代节点 UUID。
 
 ```bash
 yq toc list OWNER/BOOK
@@ -39,4 +39,4 @@ yq toc remove OWNER/BOOK --node UUID --with-children
 
 HTTP 200 不够。若部分结果与回读不一致，查看 completed/UUID，再查询两侧目录；禁止直接重发复制或批量移动。
 
-库内目录命令默认 Open API；限流或需要对照网页协议时可显式 `--via web`。`toc destroy --node UUID --with-children --yes` 是 Web 删除到回收站语义；不要与 remove 混淆。visible:0 在公网历史实测未生效，本工具会报告回读不符，不将其宣称为已支持隐藏/权限操作。
+目录命令统一 Web API；`--via web` 仅为兼容参数。`toc destroy --node UUID --with-children --yes` 是 Web 删除到回收站语义；不要与 remove 混淆。visible:0 在公网历史实测未生效，本工具会报告回读不符，不将其宣称为已支持隐藏/权限操作。

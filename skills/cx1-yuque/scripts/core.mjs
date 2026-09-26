@@ -120,18 +120,20 @@ export function safePath(input, mode) {
   if (
     url.origin !== ORIGIN ||
     !url.pathname.startsWith("/api/") ||
-    (mode === "open") !== url.pathname.startsWith("/api/v2/")
+    mode !== "web" ||
+    /^\/api\/v2(?:\/|$)/i.test(decoded)
   )
-    fail("PATH", "open 只允许 /api/v2/；web 只允许其他 /api/ 路径。");
+    fail("PATH", "仅允许 Web API /api/ 路径，禁止 /api/v2/。");
   return url.href;
 }
 export class Client {
-  constructor({ mode, session, token, fetcher = fetch }) {
-    Object.assign(this, { mode, session, token, fetcher });
+  constructor({ mode = "web", session, fetcher = fetch }) {
+    Object.assign(this, { mode, session, fetcher });
     this.checked = false;
   }
   async check() {
-    if (this.mode === "open") return;
+    if (this.checked) return { id: this.account.id, login: this.account.login };
+    if (this.mode !== "web") fail("ROUTE_REMOVED", "仅支持 Web API。");
     const j = await this.request("GET", "/api/mine", undefined, {
       skipCheck: true,
     });
@@ -143,6 +145,7 @@ export class Client {
       me.login !== this.session.account.login
     )
       fail("ACCOUNT_MISMATCH", "Session 账号与已绑定账号不一致；停止操作。");
+    this.account = me;
     this.checked = true;
     return { id: me.id, login: me.login };
   }
@@ -154,22 +157,14 @@ export class Client {
       fail("INPUT", "GET 参数必须放在 query 中。");
     if (this.mode === "web" && !skipCheck && !this.checked) await this.check();
     const headers = { Accept: "application/json", "User-Agent": "cx1-yuque" };
-    if (this.mode === "open") {
-      if (!this.token)
-        fail(
-          "TOKEN_MISSING",
-          "请设置 YUQUE_PERSONAL_TOKEN；工具不会自动 source shell 配置。",
-        );
-      headers["X-Auth-Token"] = this.token;
-    } else {
-      headers.Cookie = Object.entries(this.session.cookies)
-        .map(([k, v]) => `${k}=${v}`)
-        .join("; ");
-      headers["x-csrf-token"] = this.session.cookies.yuque_ctoken;
-      headers["x-requested-with"] = "XMLHttpRequest";
-      headers.Referer = ORIGIN + "/";
-      headers.Origin = ORIGIN;
-    }
+    if (this.mode !== "web") fail("ROUTE_REMOVED", "仅支持 Web API。");
+    headers.Cookie = Object.entries(this.session.cookies)
+      .map(([k, v]) => `${k}=${v}`)
+      .join("; ");
+    headers["x-csrf-token"] = this.session.cookies.yuque_ctoken;
+    headers["x-requested-with"] = "XMLHttpRequest";
+    headers.Referer = ORIGIN + "/";
+    headers.Origin = ORIGIN;
     if (body !== undefined && !(body instanceof FormData))
       headers["Content-Type"] = "application/json";
     let response;
@@ -198,7 +193,7 @@ export class Client {
     if (response.status === 429)
       fail(
         "RATE_LIMIT",
-        "Open/Web API 已限流。等待后重新发起读取；不得换通道自动重放写入。",
+        "Web API 已限流。等待后重新发起读取；不得自动重放写入。",
         {
           httpStatus: 429,
           retryAfter: response.headers.get("retry-after") || null,

@@ -2,7 +2,7 @@
 
 ## Lake 保真编辑
 
-Open API 文档详情读取 `body_lake`，创建/更新用 `format:"lake", body: LAKE_SOURCE`，不要混用 Web API 的 body_asl。
+CLI 从 Web 文档详情的 `content` 读取 Lake，保存使用 `/content` 的 `body_asl`，随后发布并精确回读。对外统一为 `--format lake --body-file FILE`。
 
 ```bash
 yq doc create OWNER/BOOK --title '标题' --format lake --body-file body.lake
@@ -11,7 +11,7 @@ yq doc update DOC_URL --format lake --body-file updated.lake
 
 创建需要 title、format、body-file；创建私有文档显式 `public:0`。更新既有文档不要顺手改变 public。写前保留原始 Lake；只修改目标结构，保留 data-lake-id、未知属性及其他卡片，不使用脆弱的全局字符串替换编辑任意嵌套结构。
 
-已实测 Open API 创建/更新、精确回读及 Chrome 显示：
+这些结构在既有测试中已验证存储及 Chrome 显示；Web 保存和画板渲染另于 2026-09-26 验证：
 
 ```html
 <article class="lake-columns">
@@ -50,7 +50,7 @@ const value = {id:uniqueId,src:upload.url,name:upload.filename,
 // <card type="block" name="localdoc" value="ENCODED_JSON"></card>
 ```
 
-再用 Open API 更新文档并回读。附件卡片显示不证明内容下载和 Office/PDF 内嵌预览；按用户目标实际点击核验。已有私有附件的跨库引用不意味着权限已迁移。
+再用同一 Web 会话更新发布文档并回读。附件卡片显示不证明内容下载和 Office/PDF 内嵌预览；按用户目标实际点击核验。已有私有附件的跨库引用不意味着权限已迁移。
 
 HTML 文件导入仍属于公网不支持的独立能力，不能用上述正文写入宣称支持。
 

@@ -20,7 +20,13 @@ const session = {
   cookies: { _yuque_session: "s", yuque_ctoken: "c" },
 };
 function runtime(fetcher) {
-  return new Runtime({ token: "token", fetcher, sessionLoader: () => session });
+  return new Runtime({
+    fetcher: (url, req) =>
+      url.endsWith("/api/mine")
+        ? Promise.resolve(ok(session.account))
+        : fetcher(url, req),
+    sessionLoader: () => session,
+  });
 }
 test("URL parsing and strict CLI inputs reject ambiguity before requests", () => {
   assert.deepEqual(parseTarget("https://www.yuque.com/a/b/c?x=y#header"), {
@@ -83,8 +89,8 @@ test("pagination keeps pins, advances by returned count and fails on stalled pag
     );
   });
   const res = await r.pages(
-    "open",
-    "/api/v2/notes",
+    "web",
+    "/api/modules/note/notes/NoteController/index",
     { limit: 20 },
     "offset",
     true,
@@ -96,18 +102,14 @@ test("pagination keeps pins, advances by returned count and fails on stalled pag
   assert.equal(res.complete, true);
   assert.match(urls[1], /offset=1/);
   const stuck = runtime(async () => ok([{ id: 1 }]));
-  await assert.rejects(
-    stuck.pages("open", "/api/v2/search", {}, "page", true),
-    { code: "PAGINATION_STALLED" },
-  );
+  await assert.rejects(stuck.pages("web", "/api/zsearch", {}, "page", true), {
+    code: "PAGINATION_STALLED",
+  });
 });
-test("GET-only workflows never initialize Web session; batch reuses auth once", async () => {
+test("GET-only batch uses Web session and reuses auth once", async () => {
   let count = 0;
   const r = new Runtime({
-    token: "x",
-    sessionLoader: () => {
-      throw new Error("Web should not load");
-    },
+    sessionLoader: () => session,
     fetcher: async () => {
       count++;
       return ok({ id: 7, login: "tester" });
@@ -127,26 +129,29 @@ test("GET-only workflows never initialize Web session; batch reuses auth once", 
 });
 test("Web workflows validate one session per process without using unrelated Open token", async () => {
   let count = 0;
-  const r = runtime(async (url, req) => {
-    assert.equal(req.headers["X-Auth-Token"], undefined);
-    if (url.endsWith("/api/mine")) {
-      count++;
-      return ok(session.account);
-    }
-    return ok([]);
+  const r = new Runtime({
+    sessionLoader: () => session,
+    fetcher: async (url, req) => {
+      assert.equal(req.headers["X-Auth-Token"], undefined);
+      if (url.endsWith("/api/mine")) {
+        count++;
+        return ok(session.account);
+      }
+      return ok([]);
+    },
   });
-  r.webContext = true;
   await r.preflightWeb();
   await r.preflightWeb();
   assert.equal(count, 1);
 });
 test("mixed account mismatch prevents mutation", async () => {
   const requests = [];
-  const r = runtime(async (url, req) => {
-    requests.push(req.method);
-    return ok(
-      url.endsWith("/api/mine") ? session.account : { id: 8, login: "other" },
-    );
+  const r = new Runtime({
+    sessionLoader: () => session,
+    fetcher: async (url, req) => {
+      requests.push(req.method);
+      return ok({ id: 8, login: "other" });
+    },
   });
   await assert.rejects(r.preflightWeb(), { code: "ACCOUNT_MISMATCH" });
   assert.ok(requests.every((x) => x === "GET"));
@@ -157,9 +162,9 @@ test("known successful write followed by unknown failure retains journal and doe
     if (++calls === 1) return ok({ id: 123 });
     throw new Error("secret in network exception");
   });
-  await r.request("open", "POST", "/api/v2/repos/1/docs", { title: "test" });
+  await r.request("web", "POST", "/api/docs", { title: "test" });
   try {
-    await r.request("open", "PUT", "/api/v2/repos/1/docs/123", {});
+    await r.request("web", "PUT", "/api/docs/123", {});
     assert.fail();
   } catch (e) {
     const result = r.error(e);
@@ -178,7 +183,7 @@ test("500 mutation outcome is unknown and not automatically replayed", async () 
       }),
   );
   try {
-    await r.request("open", "POST", "/api/v2/repos/1/docs", {});
+    await r.request("web", "POST", "/api/docs", {});
     assert.fail();
   } catch (e) {
     assert.equal(r.error(e).status, "unknown");
@@ -188,6 +193,8 @@ test("document stale content stops before PUT; patches require a unique exact ma
   let puts = 0,
     gets = 0;
   const r = runtime(async (_url, req) => {
+    if (_url.endsWith("/api/mine/book_stacks"))
+      return ok([{ books: [{ id: 2 }] }]);
     if (req.method === "PUT") puts++;
     return ok({
       id: 12,
@@ -195,39 +202,44 @@ test("document stale content stops before PUT; patches require a unique exact ma
       title: "t",
       format: "lake",
       updated_at: ++gets === 1 ? "a" : "b",
-      body_lake: "<p>old</p>",
+      content: "<p>old</p>",
     });
   });
   await assert.rejects(
     dispatch(r, "doc patch", "12", {
+      book: "2",
       input: { edits: [{ find: "old", replace: "new" }] },
     }),
     { code: "CONFLICT" },
   );
   assert.equal(puts, 0);
-  const r2 = runtime(async () =>
-    ok({ id: 12, book_id: 2, format: "lake", body_lake: "<p>x x</p>" }),
+  const r2 = runtime(async (url) =>
+    url.endsWith("/api/mine/book_stacks")
+      ? ok([{ books: [{ id: 2 }] }])
+      : ok({ id: 12, book_id: 2, format: "lake", content: "<p>x x</p>" }),
   );
   await assert.rejects(
     dispatch(r2, "doc patch", "12", {
+      book: "2",
       input: { edits: [{ find: "x", replace: "y" }] },
     }),
     { code: "AMBIGUOUS" },
   );
 });
-test("Open create workflow attaches and verifies document with one mutation per stage", async () => {
+test("Web create workflow attaches and verifies document with one mutation per stage", async () => {
   const calls = [];
   const d = {
     id: 12,
     book_id: 2,
     format: "lake",
     title: "t",
-    body_lake: "<p>ok</p>",
+    content: "<p>ok</p>",
   };
   const r = runtime(async (url, req) => {
     calls.push([req.method, url]);
-    if (url.endsWith("/api/v2/repos/2")) return ok({ id: 2 });
-    if (url.endsWith("/toc"))
+    if (url.endsWith("/api/mine/book_stacks"))
+      return ok([{ books: [{ id: 2 }] }]);
+    if (url.includes("/api/catalog_nodes?"))
       return ok([{ uuid: "n", id: 12, parent_uuid: "" }]);
     return ok(d);
   });
@@ -237,8 +249,8 @@ test("Open create workflow attaches and verifies document with one mutation per 
     format: "lake",
   });
   assert.equal(res.status, "verified");
-  assert.equal(calls.filter((x) => x[0] === "POST").length, 1);
-  assert.equal(calls.filter((x) => x[0] === "PUT").length, 1);
+  assert.equal(calls.filter((x) => x[0] === "POST").length, 2);
+  assert.equal(calls.filter((x) => x[0] === "PUT").length, 0);
 });
 test("catalog positioning verifies adjacency and subtree relationships", () => {
   const nodes = [
@@ -314,7 +326,9 @@ test("rate limit remains an explicit terminal result without replay", async () =
     });
   });
   await assert.rejects(
-    r.request("open", "POST", "/api/v2/notes", { body: "x" }),
+    r.request("web", "POST", "/api/modules/note/notes/NoteController/index", {
+      body: "x",
+    }),
     { code: "RATE_LIMIT" },
   );
   assert.equal(count, 1);

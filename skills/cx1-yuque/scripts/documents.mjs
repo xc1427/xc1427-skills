@@ -1,8 +1,7 @@
-import { fail, ORIGIN } from "./core.mjs";
+import { fail, ORIGIN, downloadExport } from "./core.mjs";
 import {
   enc,
   query,
-  bookPath,
   hash,
   bodyOf,
   equalFields,
@@ -10,13 +9,11 @@ import {
 } from "./runtime.mjs";
 export const tocId = (n) => Number(n.doc_id ?? n.id);
 export async function toc(r, ref) {
-  const j = r.webContext
-    ? await r.request(
-        "web",
-        "GET",
-        query("/api/catalog_nodes", { book_id: (await r.book(ref)).id }),
-      )
-    : await r.request("open", "GET", bookPath(ref) + "/toc");
+  const j = await r.request(
+    "web",
+    "GET",
+    query("/api/catalog_nodes", { book_id: (await r.book(ref)).id }),
+  );
   if (!Array.isArray(j.data)) fail("RESPONSE", "目录响应不是数组。");
   return j.data;
 }
@@ -93,22 +90,12 @@ export async function attach(
   if (["moveBefore", "moveAfter"].includes(position) && !target)
     fail("INPUT", "同级定位需 target UUID。");
   if (!locations[position]) fail("INPUT", "无效目录位置。");
-  const [action, action_mode] = locations[position];
-  if (r.webContext)
-    await r.request("web", "POST", "/api/docs/add_to_catalog", {
-      book_id: Number(book),
-      ids,
-      action: position,
-      ...(target ? { target_node_uuid: target } : {}),
-    });
-  else
-    await r.request("open", "PUT", bookPath(String(book)) + "/toc", {
-      action,
-      action_mode,
-      type: "DOC",
-      doc_ids: ids,
-      ...(target ? { target_uuid: target } : {}),
-    });
+  await r.request("web", "POST", "/api/docs/add_to_catalog", {
+    book_id: Number(book),
+    ids,
+    action: position,
+    ...(target ? { target_node_uuid: target } : {}),
+  });
   return r.poll(
     () => toc(r, String(book)),
     (rows) =>
@@ -124,8 +111,14 @@ export async function attach(
   );
 }
 function sameBody(d, payload) {
-  const value = payload.format === "lake" ? d.body_lake : d.body;
-  if (payload.format === "html") return false;
+  const value =
+    payload.format === "lake"
+      ? d.body_lake
+      : payload.format === "html"
+        ? d.body_html
+        : d.format === "markdown"
+          ? d.body
+          : undefined;
   return (
     typeof value === "string" &&
     value.replace(/\r\n/g, "\n").trimEnd() ===
@@ -133,21 +126,85 @@ function sameBody(d, payload) {
   );
 }
 export async function saveDoc(r, d, payload) {
-  const now = await r.doc(String(d.id), { fresh: true });
-  if (now.updated_at !== d.updated_at || hash(bodyOf(now)) !== hash(bodyOf(d)))
+  const now = await r.doc(String(d.id), {
+    book: String(d.book_id),
+    fresh: true,
+  });
+  if (
+    now.updated_at !== d.updated_at ||
+    now.draft_version !== d.draft_version ||
+    hash(bodyOf(now)) !== hash(bodyOf(d))
+  )
     fail("CONFLICT", "保存前文档已发生变化。");
-  await r.request(
-    "open",
-    "PUT",
-    bookPath(String(d.book_id)) + "/docs/" + d.id,
-    payload,
-  );
+  payload = await normalizePayload(r, payload);
   const { body, format, ...fields } = payload;
+  const edit =
+    body === undefined
+      ? null
+      : (
+          await r.request(
+            "web",
+            "GET",
+            query(`/api/docs/${d.id}`, {
+              book_id: d.book_id,
+              mode: "edit",
+              raw: 1,
+            }),
+          )
+        ).data;
+  if (edit) {
+    const published = edit.format === "lake" ? edit.body_asl : edit.body;
+    const draft =
+      edit.format === "lake" ? edit.body_draft_asl : edit.body_draft;
+    if (
+      edit.draft_version !== now.draft_version ||
+      hash(published) !== hash(bodyOf(now)) ||
+      (draft != null &&
+        draft !== published &&
+        !(
+          edit.draft_version === 0 &&
+          draft === "" &&
+          edit.format !== "lake"
+        )) ||
+      (edit.title_draft && edit.title_draft !== edit.title)
+    )
+      fail(
+        "CONFLICT",
+        "文档存在未发布草稿或读取期间已变化；先处理草稿，避免覆盖。",
+      );
+  }
+  if (format === "html" && body !== undefined) {
+    await r.request("web", "PUT", `/api/docs/${d.id}`, {
+      ...fields,
+      format,
+      body,
+    });
+  } else {
+    if (Object.keys(fields).length)
+      await r.request("web", "PUT", `/api/docs/${d.id}`, fields);
+    if (body !== undefined) {
+      if (!Number.isInteger(now.draft_version))
+        fail("RESPONSE", "缺少 draft_version。");
+      await r.request("web", "PUT", `/api/docs/${d.id}/content`, {
+        format,
+        ...(format === "lake" ? { body_asl: body } : { body }),
+        draft_version: now.draft_version,
+        sync_dynamic_data: false,
+        created_by: "online",
+        save_type: "user",
+        edit_type: "Lake",
+      });
+      await r.request("web", "PUT", `/api/docs/${d.id}/publish`, {
+        force: false,
+        notify: false,
+        ignoreGlobalMessage: true,
+      });
+    }
+  }
   return r.poll(
-    () => r.doc(String(d.id), { fresh: true }),
+    () => r.doc(String(d.id), { book: String(d.book_id), fresh: true }),
     (x) =>
-      equalFields(x, fields) &&
-      (body === undefined || format === "html" || sameBody(x, payload)),
+      equalFields(x, fields) && (body === undefined || sameBody(x, payload)),
     "文档已提交，但正文/属性回读不一致。",
   );
 }
@@ -157,38 +214,49 @@ export async function document(r, action, target, o) {
   if (action === "create") {
     if (!o.title || o.body === undefined)
       fail("INPUT", "创建需要 --title 和 --body-file/--body。");
+    const format = o.format || "markdown";
     const b = await r.book(target),
-      payload = {
+      payload = await normalizePayload(r, {
         title: o.title,
         body: o.body,
-        format: o.format || "markdown",
+        format,
         public: o.public ?? 0,
         ...(o.slug ? { slug: o.slug } : {}),
-      };
+      });
     const j = await r.request(
-        "open",
+        "web",
         "POST",
-        bookPath(String(b.id)) + "/docs",
-        payload,
+        query("/api/docs", { book_id: b.id }),
+        {
+          ...payload,
+          book_id: b.id,
+          type: "Doc",
+          status: 1,
+          insert_to_catalog: false,
+          ...(payload.format === "lake"
+            ? {
+                body: undefined,
+                body_asl: payload.body,
+                body_draft_asl: payload.body,
+              }
+            : {}),
+        },
       ),
       id = j.data?.id;
     if (!id) fail("RESPONSE", "创建响应缺少文档 ID，先查询远端状态。");
     const d = await r.poll(
-      () => r.doc(String(id), { fresh: true }),
-      (x) =>
-        x.title === o.title &&
-        (payload.format === "html" || sameBody(x, payload)),
+      () => r.doc(String(id), { book: String(b.id), fresh: true }),
+      (x) => x.title === o.title && sameBody(x, payload),
     );
     if (o.attach !== false) await attach(r, b.id, [id], o);
     return r.result(
       { id, url: r.url(d), attached: o.attach !== false },
-      payload.format === "html" ? "submitted" : "verified",
+      "verified",
     );
   }
   if (action === "version")
     return r.result(
-      (await r.request("open", "GET", "/api/v2/doc_versions/" + enc(target)))
-        .data,
+      (await r.request("web", "GET", "/api/doc_versions/" + enc(target))).data,
     );
   const d = await r.doc(target, {
     book: o.book,
@@ -207,30 +275,69 @@ export async function document(r, action, target, o) {
       ...(o.raw ? { document: d } : {}),
     });
   if (action === "read") {
-    const body =
-      o.format === "lake"
+    const format = o.format || d.format;
+    let body =
+      format === "lake"
         ? d.body_lake
-        : o.format === "html"
+        : format === "html"
           ? d.body_html
-          : d.body;
+          : d.format === "markdown"
+            ? d.body
+            : undefined;
+    if (typeof body !== "string" && format === "html" && d.format === "lake") {
+      const edit = (
+        await r.request(
+          "web",
+          "GET",
+          query(`/api/docs/${d.id}`, {
+            book_id: d.book_id,
+            mode: "edit",
+            raw: 1,
+          }),
+        )
+      ).data;
+      body = edit.body || undefined;
+    }
+    if (typeof body !== "string" && format === "markdown") {
+      const artifact = await exportDocument(r, d, "markdown");
+      body = await exportedMarkdown(r, artifact.download_url);
+    }
+    if (typeof body !== "string")
+      fail(
+        "FORMAT",
+        "Web 原始正文不含所请求格式；省略 --format 读取原格式，或使用 doc export。",
+      );
     return r.result({
       id: d.id,
       title: d.title,
       url: r.url(d),
-      format: o.format || "markdown",
+      format,
       body: body ?? "",
       sha256: hash(bodyOf(d)),
       ...(d.body_sheet ? { body_sheet: d.body_sheet } : {}),
       ...(d.body_table ? { body_table: d.body_table } : {}),
     });
   }
+  if (action === "export") {
+    const type = o.type || "markdown";
+    if (!["markdown", "lake", "pdf", "word"].includes(type))
+      fail("INPUT", "文档导出类型为 markdown/lake/pdf/word。");
+    return r.result(
+      {
+        id: d.id,
+        url: r.url(d),
+        ...(await exportDocument(r, d, type, o.download)),
+      },
+      o.download ? "downloaded" : "ready",
+    );
+  }
   if (action === "versions")
     return r.result(
       (
         await r.request(
-          "open",
+          "web",
           "GET",
-          query("/api/v2/doc_versions", { doc_id: d.id }),
+          query("/api/doc_versions", { doc_id: d.id }),
         )
       ).data,
     );
@@ -289,19 +396,15 @@ export async function document(r, action, target, o) {
     const next = await saveDoc(r, d, payload);
     return r.result(
       { id: d.id, url: r.url(next), changed: Object.keys(payload) },
-      payload.format === "html" ? "submitted" : "verified",
+      "verified",
     );
   }
   if (action === "delete") {
     if (!o.yes) fail("CONFIRM", "删除需要 --yes。");
-    await r.request(
-      "open",
-      "DELETE",
-      bookPath(String(d.book_id)) + "/docs/" + d.id,
-    );
+    await r.request("web", "DELETE", `/api/docs/${d.id}`);
     await r.poll(async () => {
       try {
-        await r.doc(String(d.id), { fresh: true });
+        await r.doc(String(d.id), { book: String(d.book_id), fresh: true });
         return false;
       } catch (e) {
         if (e.details?.httpStatus === 404) return true;
@@ -312,7 +415,17 @@ export async function document(r, action, target, o) {
   }
   if (action === "publish") {
     await r.preflightWeb();
-    const draft = await r.webDoc(d);
+    const draft = (
+      await r.request(
+        "web",
+        "GET",
+        query(`/api/docs/${d.id}`, {
+          book_id: d.book_id,
+          mode: "edit",
+          raw: 1,
+        }),
+      )
+    ).data;
     await r.request("web", "PUT", `/api/docs/${d.id}/publish`, {
       force: o.force ?? false,
       notify: o.notify ?? false,
@@ -322,7 +435,8 @@ export async function document(r, action, target, o) {
       () => r.webDoc(d),
       (x) =>
         x.status === 1 &&
-        (x.content || x.body) === (draft.content || draft.body),
+        (x.content ?? x.body) ===
+          (draft.format === "lake" ? draft.body_draft_asl : draft.body_draft),
     );
     return r.result(
       { id: d.id, url: r.url(d), status: after.status },
@@ -445,8 +559,7 @@ export async function transfer(r, action, source, target, node, o = {}, doc) {
   );
 }
 export async function catalog(r, action, target, o) {
-  const b = await r.book(target),
-    path = bookPath(String(b.id)) + "/toc";
+  const b = await r.book(target);
   if (action === "list" || action === "tree") {
     const nodes = await toc(r, String(b.id));
     if (action === "list") return r.result(nodes);
@@ -627,7 +740,7 @@ export async function catalog(r, action, target, o) {
       };
     } else fail("COMMAND", "未知目录操作。");
   }
-  if (r.webContext) {
+  {
     let webAction =
       action === "add"
         ? "insert"
@@ -647,7 +760,7 @@ export async function catalog(r, action, target, o) {
       format: "list",
       action: webAction,
     });
-  } else await r.request("open", "PUT", path, payload);
+  }
   const ns = await r.poll(
     () => toc(r, String(b.id)),
     (rows) => {
@@ -689,4 +802,85 @@ export async function catalog(r, action, target, o) {
     },
     "verified",
   );
+}
+
+export async function exportDocument(r, d, type, download) {
+  for (let i = 0; i < 30; i++) {
+    const j = (
+      await r.request(
+        "web",
+        "POST",
+        `/api/docs/${d.id}/export`,
+        { type },
+        { read: true },
+      )
+    ).data;
+    if (j?.state === "success" && j.url) {
+      let file;
+      if (download) {
+        if (type === "markdown") {
+          const body = await exportedMarkdown(r, j.url);
+          const fs = await import("node:fs");
+          fs.writeFileSync(download, body, { flag: "wx", mode: 0o600 });
+          file = { file: download, bytes: Buffer.byteLength(body) };
+        } else
+          file = await downloadExport(
+            await r.webClient(),
+            j.url,
+            download,
+            type,
+          );
+      }
+      return { download_url: j.url, ...file };
+    }
+    if (j?.state !== "pending") fail("EXPORT", "未知导出状态。");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  fail("EXPORT_PENDING", "导出仍未就绪；稍后重新查询。");
+}
+async function exportedMarkdown(r, source) {
+  const u = new URL(source, ORIGIN);
+  if (
+    u.origin !== ORIGIN ||
+    !/^\/[^/]+\/[^/]+\/[^/]+\/markdown$/.test(u.pathname)
+  )
+    fail("DOWNLOAD_ORIGIN", "Markdown 导出地址不符合本站文档路径。");
+  const c = await r.webClient();
+  let response;
+  try {
+    response = await c.fetcher(u.href, {
+      headers: {
+        Cookie: Object.entries(c.session.cookies)
+          .map(([k, v]) => k + "=" + v)
+          .join("; "),
+      },
+      redirect: "manual",
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch {
+    fail("DOWNLOAD_NETWORK", "Markdown 读取失败。");
+  }
+  if (
+    !response.ok ||
+    !response.headers.get("content-type")?.includes("text/markdown")
+  )
+    fail("DOWNLOAD_CONTENT", "导出未返回 Markdown；检查会话/权限。");
+  return response.text();
+}
+
+async function normalizePayload(r, payload) {
+  if (payload.format !== "markdown" || payload.body === undefined)
+    return payload;
+  const d = (
+    await r.request(
+      "web",
+      "POST",
+      "/api/docs/convert",
+      { from: "markdown", to: "lake", content: payload.body },
+      { read: true },
+    )
+  ).data;
+  if (typeof d?.content !== "string")
+    fail("CONVERT", "Markdown 转换未返回 Lake 正文。");
+  return { ...payload, format: "lake", body: d.content };
 }

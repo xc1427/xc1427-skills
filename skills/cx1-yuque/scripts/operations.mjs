@@ -131,8 +131,7 @@ export function prepare(name, input) {
   if (name === "mark.list")
     body = { offset: 0, limit: 100, type: "all", ...body };
   if (name === "mark.tags") body = { action_type: "mark", ...body };
-  if (name === "search.web")
-    body = { type: "doc", offset: 0, limit: 20, ...body };
+  if (name === "search.web") body = { type: "doc", p: 1, ...body };
   if (name.startsWith("table."))
     body = {
       docType: "Doc",

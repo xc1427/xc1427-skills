@@ -1,6 +1,6 @@
 # 卡片类型完整参考
 
-> 从原 OpenAuth 技能移植的结构与设计参考，不是公网 API 的完整稳定规范。提交使用 `doc create/update --format lake --body-file FILE`（Open API 的 `body`）；不要使用内网 `body_asl` 参数。保留已有卡片编码与未知字段。新卡片须在 Chrome 验证渲染；API 回读相同只证明存储。
+> 从原 OpenAuth 技能移植的结构与设计参考，不是公网 API 的完整稳定规范。提交使用 `doc create/update --format lake --body-file FILE`；CLI 将正文映射到 Web API 的 `body_asl` 并发布核验。保留已有卡片编码与未知字段。新卡片须在 Chrome 验证渲染；API 回读相同只证明存储。
 
 本文档列出所有 Lake 卡片类型的 value 字段定义，供书写时查阅。字段名均为 Lake 序列化格式中实际使用的名称（可能与内部 TypeScript 类型不同）。
 

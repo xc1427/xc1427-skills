@@ -1,6 +1,6 @@
 # Sheet 与数据表
 
-Sheet 是 `lakesheet`，数据表是 `laketable`，两者不共用内容格式。默认读取走 Open API `body_sheet/body_table`；写入需 Web session。需要字段/记录 UUID 的数据表读取使用 `table schema/records` 的 Web 结构，避免先读不含标识符的 Open API 再转换。
+Sheet 是 `lakesheet`，数据表是 `laketable`，两者不共用内容格式。读取和写入均使用 Web session。Sheet 从原生压缩正文解包；数据表读取 schema 和 records，保留字段/记录 UUID。`table read` 在读取记录后按 page/page-size 本地分页，返回 total 和 complete。
 
 ## Sheet
 

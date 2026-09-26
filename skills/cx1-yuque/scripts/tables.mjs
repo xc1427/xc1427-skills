@@ -107,21 +107,32 @@ export async function tableCommand(r, action, target, o) {
   });
   if (d.format !== "laketable")
     fail("FORMAT", "目标不是数据表，请选择 laketable 文档。");
-  if (action === "read") {
-    if (!d.body_table) fail("FORMAT", "Open API 未返回 body_table。");
-    const b =
-      typeof d.body_table === "string"
-        ? JSON.parse(d.body_table)
-        : d.body_table;
-    return r.result({ id: d.id, url: r.url(d), ...b });
-  }
   await r.preflightWeb();
   const c = await tableContext(r, d, {
     ...o,
-    withoutView: ["schema", "records", "content.get", "content.set"].includes(
-      action,
-    ),
+    withoutView: [
+      "read",
+      "schema",
+      "records",
+      "content.get",
+      "content.set",
+    ].includes(action),
   });
+  if (action === "read") {
+    const rows = await records(r, c),
+      page = o.page || 1,
+      size = o.pageSize || 100;
+    return r.result({
+      id: d.id,
+      url: r.url(d),
+      sheet: c.sheet,
+      records: rows.slice((page - 1) * size, page * size),
+      total: rows.length,
+      page,
+      page_size: size,
+      complete: page * size >= rows.length,
+    });
+  }
   if (action === "schema")
     return r.result({
       id: d.id,

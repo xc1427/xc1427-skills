@@ -12,7 +12,6 @@ import {
 import { Runtime } from "./runtime.mjs";
 import { commands, validate, dispatch } from "./commands.mjs";
 import { receive } from "./receiver.mjs";
-import { official } from "./fallback.mjs";
 const booleans = new Set(
   "yes all raw text group attach withChildren replaceFormat force notify".split(
     " ",
@@ -207,22 +206,15 @@ export async function main(argv = process.argv.slice(2)) {
                 : ""),
           )
           .join("\n") +
-        "\n\n文件输入: --body-file/--dsl-file/--rows-file/--cells-file/--values-file/--options-file；--input JSON_FILE\n所有命令支持 --output NEW_FILE；读取 --text。默认 JSON。布尔用 --flag/--no-flag。\nbatch --input STEPS.json 共享进程、账号校验与对象缓存。\nofficial [--dir PROJECT_DIR] -- CLI_ARGS  显式安装/运行 registry 最新版官方 CLI，仅局部。\n",
+        "\n\n文件输入: --body-file/--dsl-file/--rows-file/--cells-file/--values-file/--options-file；--input JSON_FILE\n所有命令支持 --output NEW_FILE；读取 --text。默认 JSON。布尔用 --flag/--no-flag。\nbatch --input STEPS.json 共享进程、账号校验与对象缓存。\n",
     );
     return;
   }
-  if (argv[0] === "official") {
-    const args = argv.slice(1);
-    let directory;
-    if (args[0] === "--dir") {
-      args.shift();
-      directory = args.shift();
-      if (!directory) fail("INPUT", "--dir 缺少目录。");
-    }
-    if (args[0] === "--") args.shift();
-    official(args, { directory });
-    return;
-  }
+  if (argv[0] === "official")
+    fail(
+      "ROUTE_REMOVED",
+      "已移除 Open API 官方 CLI 兜底；使用 Web API 或 Chrome 核验。",
+    );
   const r = new Runtime();
   let o = {};
   try {

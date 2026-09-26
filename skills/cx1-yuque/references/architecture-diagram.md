@@ -1,6 +1,6 @@
 # 架构图（Architecture Diagram）
 
-> 从原 OpenAuth 技能移植的结构与设计参考，不是公网 API 的完整稳定规范。提交使用 `doc create/update --format lake --body-file FILE`（Open API 的 `body`）；不要使用内网 `body_asl` 参数。保留已有卡片编码与未知字段。新卡片须在 Chrome 验证渲染；API 回读相同只证明存储。
+> 从原 OpenAuth 技能移植的结构与设计参考，不是公网 API 的完整稳定规范。提交使用 `doc create/update --format lake --body-file FILE`；CLI 将正文映射到 Web API 的 `body_asl` 并发布核验。保留已有卡片编码与未知字段。新卡片须在 Chrome 验证渲染；API 回读相同只证明存储。
 
 在语雀中生成专业的架构图（Architecture Diagram）。使用 board 画板卡片实现，语义色彩区分组件类型，输出为标准语雀文档。
 

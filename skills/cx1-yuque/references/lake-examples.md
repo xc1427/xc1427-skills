@@ -1,6 +1,6 @@
 # Lake 格式书写示例集
 
-> 从原 OpenAuth 技能移植的结构与设计参考，不是公网 API 的完整稳定规范。提交使用 `doc create/update --format lake --body-file FILE`（Open API 的 `body`）；不要使用内网 `body_asl` 参数。保留已有卡片编码与未知字段。新卡片须在 Chrome 验证渲染；API 回读相同只证明存储。
+> 从原 OpenAuth 技能移植的结构与设计参考，不是公网 API 的完整稳定规范。提交使用 `doc create/update --format lake --body-file FILE`；CLI 将正文映射到 Web API 的 `body_asl` 并发布核验。保留已有卡片编码与未知字段。新卡片须在 Chrome 验证渲染；API 回读相同只证明存储。
 
 实际场景下的 Lake 格式书写示例。所有示例先展示 value JSON，再展示完整 Lake HTML（为可读性做了换行，实际提交使用 UTF-8 正文文件）。
 

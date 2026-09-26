@@ -58,12 +58,6 @@ export function parseTarget(input) {
   if (/^[^/\s]+\/[^/\s]+$/.test(input)) return { type: "book", book: input };
   return { type: "slug", id: input };
 }
-export function bookPath(ref) {
-  const p = parseTarget(ref),
-    r = p.book || (p.type === "id" ? p.id : undefined);
-  if (!r) fail("BOOK", "知识库必须是 URL、owner/book 或数字 ID。");
-  return "/api/v2/repos/" + r.split("/").map(enc).join("/");
-}
 export function one(
   items,
   value,
@@ -81,15 +75,11 @@ export function one(
   return matches[0];
 }
 export class Runtime {
-  constructor({
-    token = process.env.YUQUE_TOKEN || process.env.YUQUE_PERSONAL_TOKEN,
-    sessionLoader = loadSession,
-    fetcher = fetch,
-  } = {}) {
-    this.open = new Client({ mode: "open", token, fetcher });
+  constructor({ sessionLoader = loadSession, fetcher = fetch } = {}) {
     this.sessionLoader = sessionLoader;
     this.fetcher = fetcher;
     this.cache = new Map();
+    this.bookRefs = new Map();
     this.steps = [];
     this.routes = new Set();
     this.pending = null;
@@ -102,29 +92,23 @@ export class Runtime {
         session: this.sessionLoader(),
         fetcher: this.fetcher,
       });
-      await this.web.check();
     }
+    await this.web.check();
     return this.web;
   }
   async preflightWeb() {
     await this.webClient();
-    if (!this.webContext && this.open.token && !this.identitiesChecked) {
-      const me = await this.me();
-      if (String(me.id) !== String(this.web.session.account.id))
-        fail(
-          "ACCOUNT_MISMATCH",
-          "Token 和 Web session 不是同一账号；未执行写入。",
-        );
-      this.identitiesChecked = true;
-    }
   }
   async me() {
-    if (!this.account)
-      this.account = (await this.request("open", "GET", "/api/v2/user")).data;
-    return this.account;
+    const c = await this.webClient();
+    this.routes.add("web");
+    return c.account;
   }
+
   async request(route, method, path, body, { read = false } = {}) {
-    const c = route === "open" ? this.open : await this.webClient();
+    if (route !== "web")
+      fail("ROUTE_REMOVED", "仅支持 Web API；不再使用 Open API Token。");
+    const c = await this.webClient();
     this.routes.add(route);
     const mutation = method !== "GET" && !read;
     if (mutation) this.pending = { route, method, path: path.split("?")[0] };
@@ -159,36 +143,19 @@ export class Runtime {
       });
       this.pending = null;
       this.cache.clear();
+      this.webBooks = null;
     }
     return j;
   }
   async book(ref, { fresh = false } = {}) {
-    if (this.webContext) return webBook(this, ref);
-    const p = bookPath(ref),
-      key = "book:" + p;
-    if (!fresh && this.cache.has(key)) return this.cache.get(key);
-    const d = (await this.request("open", "GET", p)).data;
-    if (!d?.id) fail("RESPONSE", "知识库响应缺少 ID。");
-    this.cache.set(key, d);
-    return d;
+    if (fresh) {
+      this.cache.clear();
+      this.webBooks = null;
+    }
+    return webBook(this, ref);
   }
-  async doc(ref, { book, fresh = false, page, page_size } = {}) {
-    if (this.webContext) return webDocument(this, ref, { book });
-    const t = parseTarget(ref);
-    let p;
-    if (t.type === "doc" && t.book) p = bookPath(t.book) + "/docs/" + enc(t.id);
-    else if (book) p = bookPath(book) + "/docs/" + enc(t.id);
-    else if (/^\d+$/.test(t.id || "")) p = "/api/v2/repos/docs/" + enc(t.id);
-    else fail("DOC", "请提供文档 URL、全局数字 ID，或 slug 加 --book。");
-    p = query(p, { page, page_size });
-    const key = "doc:" + p;
-    if (!fresh && this.cache.has(key)) return this.cache.get(key);
-    const d = (await this.request("open", "GET", p)).data;
-    if (!d?.id || !(d.book_id || d.book?.id))
-      fail("RESPONSE", "文档响应缺少 id/book_id。");
-    d.book_id ??= d.book.id;
-    this.cache.set(key, d);
-    return d;
+  async doc(ref, { book, fresh = false } = {}) {
+    return webDocument(this, ref, { book, fresh });
   }
   async webDoc(doc) {
     return (

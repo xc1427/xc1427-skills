@@ -66,7 +66,7 @@ export async function sheetCommand(r, action, target, o) {
   }
   const d = await r.doc(target, { book: o.book });
   if (d.format !== "lakesheet") fail("FORMAT", "目标不是 Sheet。");
-  if (action === "read" && r.webContext) {
+  if (action === "read") {
     const m = unpack(d.content || d.body),
       selected =
         o.sheet === undefined
@@ -98,36 +98,6 @@ export async function sheetCommand(r, action, target, o) {
       name: selected.name,
       rows,
       markdown: markdownTable(rows),
-    });
-  }
-  if (action === "read") {
-    if (!d.body_sheet)
-      fail(
-        "RESPONSE",
-        "Open API 未返回 body_sheet；可显式 sheet inspect 查看 Web 原始模型。",
-      );
-    const model =
-      typeof d.body_sheet === "string"
-        ? JSON.parse(d.body_sheet)
-        : d.body_sheet;
-    const list = model.data || model.sheet;
-    if (!Array.isArray(list)) fail("RESPONSE", "未知 body_sheet 结构。");
-    const chosen =
-      o.sheet === undefined
-        ? list.length === 1
-          ? list[0]
-          : null
-        : one(list, String(o.sheet), { key: "index", kind: "子表" });
-    if (!chosen)
-      fail("AMBIGUOUS", "存在多个子表，请指定 --sheet 索引/名称。", {
-        candidates: list.map((s) => ({ index: s.index, name: s.name })),
-      });
-    return r.result({
-      id: d.id,
-      url: r.url(d),
-      name: chosen.name,
-      rows: chosen.table,
-      markdown: markdownTable(chosen.table || []),
     });
   }
   await r.preflightWeb();

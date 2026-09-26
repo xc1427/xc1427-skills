@@ -1,6 +1,6 @@
 # Lake 格式书写指南
 
-> 从原 OpenAuth 技能移植的结构与设计参考，不是公网 API 的完整稳定规范。提交使用 `doc create/update --format lake --body-file FILE`（Open API 的 `body`）；不要使用内网 `body_asl` 参数。保留已有卡片编码与未知字段。新卡片须在 Chrome 验证渲染；API 回读相同只证明存储。
+> 从原 OpenAuth 技能移植的结构与设计参考，不是公网 API 的完整稳定规范。提交使用 `doc create/update --format lake --body-file FILE`；CLI 将正文映射到 Web API 的 `body_asl` 并发布核验。保留已有卡片编码与未知字段。新卡片须在 Chrome 验证渲染；API 回读相同只证明存储。
 
 Lake 格式是语雀（Yuque）编辑器的富文本序列化格式，MIME 类型为 `text/lake`。它本质上是一个 **HTML 子集**，通过自定义 `<card>` 标签扩展，用于表示代码块、图片、公式等复杂内容。
 
@@ -381,4 +381,4 @@ Lake 通过三种机制实现内联样式。
 7. **列表用新格式**——`<ul list="...">` / `<ol list="...">`，`<li fid="...">`
 8. **标签全小写**——`<p>` 不是 `<P>`
 9. **属性用双引号**——`id="u0001"` 不是 `id='u0001'`
-10. **使用公网 CLI 契约**——`doc create/update --format lake --body-file FILE` 映射到 Open API 的 `body`，不要照搬内网的 `body_asl`。
+10. **使用公网 CLI 契约**——`doc create/update --format lake --body-file FILE` 由 CLI 映射到 Web API 的 `body_asl`，不要自行绕过草稿和发布检查。

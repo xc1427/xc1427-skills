@@ -1,98 +1,44 @@
-# 能力覆盖与证据边界
+# Web API 能力覆盖与验证
 
-核对日期：2026-09-24。基线为原 OpenAuth 49 个命令及其 Lake/架构图/蓝图参考；其中 48 个有业务命令或等价工作流，HTML 文件导入为公网明确不支持。**这是能力映射，不是 48 个命令的所有参数组合均已线上验证。**
+核对日期：2026-09-26。运行时统一使用公网 Web session，身份、解析、正文、元数据和回读都不调用 Open API；`/api/v2/`、Token 认证和官方 CLI 兜底均已移除。下表区分适配与线上验证，不表示所有账号、权限和参数组合均已通过。
 
-新实现直接调用 Open/Web API。官方 CLI 仅由显式 `official` 分支启动，查询 registry 最新版并在项目局部安装；本轮 latest 为 1.1.0。GitHub main 的 notes/resources 契约可能先于 npm 发布，不能用 npm 版本缺命令推断 API 不存在。
-
-## 原技能映射
-
-| 原命令 | 本 CLI | 通道 | 证据或限制 |
-|---|---|---|---|
-| `comment.create` | `comment create` | Web | 本轮回读和网页 |
-| `comment.list` | `comment list` | Web | 本轮回读 |
-| `doc.create` | `doc create` | Open | 本轮 Lake 创建与目录挂载；Markdown 基于既有实测 |
-| `doc.delete` | `doc delete --yes` | Open | 已实现；本轮未重测删除 |
-| `doc.get` | `doc read/inspect` | Open | 本轮读取 |
-| `doc.importHtml` | `不提供伪替代` | 不支持 | 公网已知限制，仅内网支持 |
-| `doc.list` | `doc list` | Open | 公开契约；分页单测 |
-| `doc.markdown` | `doc read --text` | Open | 本轮读取路径 |
-| `doc.publish` | `doc publish` | Web | 本轮回读 |
-| `doc.update` | `doc update/append/patch` | Open | 追加本轮实测；patch 冲突与唯一匹配单测 |
-| `doc.upload` | `attachment upload/add` | Web + Open | 上传嵌入、回读、Chrome 卡片 |
-| `doc.versions` | `doc versions/version` | Open | 公开契约，最近100个发布版本 |
-| `mark.list` | `mark list` | Web | 本轮读取 |
-| `mark.tags` | `mark tags` | Web | 本轮读取 |
-| `note.get` | `note get` | Open / Web | Open 数字ID读取、本轮Web URL解析 |
-| `note.list` | `note list` | Open / Web | 两通道读取；offset实测 |
-| `note.tagStats` | `note tag-stats` | Web | 本轮读取 |
-| `note.tags` | `note tags` | Web | 本轮读取 |
-| `note.update` | `note update` | Open / Web | 本轮Web写回；Open有契约，本轮未写 |
-| `repo.create` | `book create` | Open | 已实现；本轮不新增用户库 |
-| `repo.detail` | `book get` | Open | 本轮读取；Web工作流从库页面解析 |
-| `repo.update` | `book update` | Open | 已实现；本轮不改用户库属性 |
-| `search.query` | `search / search web` | Open / Web | 两通道读取；团队/用户类别走Web |
-| `sheet.create` | `sheet create` | Web | 本轮创建、保存发布、回读 |
-| `sheet.export` | `sheet export` | Web | 本轮xlsx下载且核对B2/AA3/A4 |
-| `sheet.read` | `sheet read/inspect` | Open / Web | 两通道读取 |
-| `sheet.write` | `sheet set/write/append` | Web | 本轮多字母列与追加；保留非目标结构单测 |
-| `table.bulkUpdate` | `table record bulk/set` | Web | 本轮批量改单元格回读 |
-| `table.create` | `table record add` | Web | 指创建记录，不是创建整张数据表；本轮回读 |
-| `table.getContent` | `table content get` | Web | 本轮回读 |
-| `table.putContent` | `table content set` | Web | 本轮写入、回读、Chrome |
-| `table.remove` | `table record remove --yes` | Web | 本轮删除临时记录 |
-| `table.show` | `table records/read` | Web / Open | 本轮读取 |
-| `tableField.create` | `table field add` | Web | 本轮text/select；其余类型配置需网页样本 |
-| `tableField.remove` | `table field remove --yes` | Web | 本轮删除临时字段 |
-| `tableField.update` | `table field set` | Web | 本轮重命名与保留选项 |
-| `tableView.create` | `table view add` | Web | 本轮GRID/KANBAN/GALLERY/CALENDAR创建；看板、画册、日历均Chrome验证 |
-| `tableView.remove` | `table view remove --yes` | Web | 本轮删除临时视图 |
-| `tableView.update` | `table view set` | Web | 本轮改名和保留配置 |
-| `toc.batch` | `toc batch` | Web | 本轮跨库copy/move与同库move；remove/destroy继承已验证协议 |
-| `toc.list` | `toc list` | Open / Web | 两通道读取 |
-| `toc.moveCross` | `toc transfer/copy, doc move/copy` | Web | 本轮两库间复制与往返移动 |
-| `toc.tree` | `toc tree` | Open / Web | 树由读取的parent_uuid构建 |
-| `toc.update` | `toc add/edit/move/remove/destroy/attach` | Open / Web | 本轮Web四位置与属性更新、Open挂载；visible:0历史不生效，明确报告失败 |
-| `user.books` | `user books / book list` | Web / Open | 本轮Web书架读取 |
-| `user.groups` | `user groups` | Open | 公开契约；受团队权限约束 |
-| `user.me` | `user me / auth status` | Open | 本轮身份验证 |
-| `user.recent` | `user recent` | Web | 本轮读取 |
-| `util.parseUrl` | `url parse / resolve` | 本地 / Open | URL解析单测、实际文档解析 |
-
-## 原目录枚举逐项映射
-
-- insert → toc add；edit → toc edit。
-- prependChild/appendChild/moveBefore/moveAfter → toc move --position。
-- remove/removeWithChildren → toc remove 加可选 --with-children。
-- destroy/destroyWithChildren → toc destroy --yes 加可选 --with-children。
-- appendByDocs/prependByDocs/insertSiblingByDocs → toc attach 的 appendChild/prependChild/moveAfter；Web 使用实际有效的 add_to_catalog，不照抄会假成功的旧接口。
-- 批量四动作 batchRemove/batchDestroy/batchMove/batchCopy 均有独立语义和回读；批量回读核对成员/数量/根节点位置与顺序，复杂子树还需额外查看目录树。
-- visible:0 是已有公网反例，不能宣传成隐藏或权限能力。完整文档类型矩阵、复杂子树删除及所有排序组合未全部实测。
-
-## 官方 Open API 范围
-
-| 能力 | 自有命令 | 当前验证范围 |
+| 能力 | 命令 | Web 实现与验证范围 |
 |---|---|---|
-| hello、当前账号、用户团队 | ping、auth status、user me/groups | 账号实测；团队受权限约束 |
-| 用户/团队库列表与 CRUD | book list/get/create/update/delete | 读取实测；写入适配公开契约，本轮未改真实库属性 |
-| 文档 CRUD、版本、目录 | doc 与 toc 系列 | 本轮创建/追加/目录挂载实测，异常与冲突单测 |
-| 搜索 | search | 实测；scope 为 OWNER/BOOK 或团队 login |
-| 团队成员列表/角色/移除 | group members/member-set/member-remove | 契约适配，未对真实团队变更权限，写入标记 submitted |
-| 团队/成员/库/文档统计 | stats group/members/books/docs | 契约适配，未声称当前账号可读取全部统计 |
-| 小记列表/详情/创建/更新 | note list/get/create/update | Open读取；Web更新+回读；Open新写接口未完整实测 |
-| 结构化资源画板 | resource get/create/update | 官方main契约适配；返回submitted，需读回+渲染验证 |
+| 当前账号、探测 | auth status、user me、ping | `/api/mine`，账号绑定校验已实测 |
+| 用户团队、书架、最近访问 | user groups/books/recent | Web 原生集合；团队及书架本轮读取 |
+| 用户/团队库列表 | book list | 当前账号接口忽略 user_id/offset，按归属过滤后本地分页；其他用户合并受邀库与公开主页书架；本人、团队及协作用户均实测 |
+| 库详情与修改 | book get/update | 网页初始化数据解析、PUT books；测试库属性修改后恢复 |
+| 库创建/删除 | book create/delete | 当前网页 books 协议适配；本轮未创建/删除知识库 |
+| 文档列表、读取、解析 | doc list/read/inspect、resolve | docs 与已认证页面/短链接，Lake/HTML/Markdown 原生路径已实测 |
+| 创建/替换/精确编辑/追加 | doc create/update/patch/append | Lake 保存草稿后发布，HTML 属性保存，Markdown 先转换 Lake；本轮创建/更新/回读 |
+| 删除、版本、发布 | doc delete/versions/version/publish | docs 与 doc_versions；版本读取、发布和测试副本删除已验证 |
+| Markdown 导出 | doc read --format markdown、doc export | export 获取本站 Markdown 地址，限定路径及响应类型后下载 |
+| 其他文档导出 | doc export --type lake/pdf/word | 原生 export 协议；本轮未穷举导出格式及下载地址 |
+| 目录增改移除/挂载 | toc add/edit/move/remove/destroy/attach | catalog_nodes 与 docs/add_to_catalog；既有 Web 实测，本轮挂载/复制/迁移回读 |
+| 跨库与批量目录 | doc copy/move、toc copy/transfer/batch | Web 原生复制迁移；核对目标内容、节点位置及源移除 |
+| 搜索 | search、search web | zsearch；普通命令默认 related，scope 保持 owner/book，p 分页；本轮两页共 40 项 |
+| 小记 | note list/get/create/update/tags/tag-stats | NoteController；创建响应在顶层，不能假定 data 包装；本轮创建、更新、回读 |
+| 附件 | attachment upload/add | Web 上传、Lake 卡片追加、同会话保存发布与回读 |
+| 评论、收藏 | comment create/list、mark list/tags | 原 Web 实现保留；2026-09-24 已验证，本轮未重复发送评论 |
+| Sheet | sheet create/read/inspect/set/write/append/export | 原生 lakesheet 解包；既有 Web 创建与导出验证，本轮读写后恢复、Excel 下载 |
+| 数据表记录及内容 | table read/records/record/content | 原生 TableRecord/Value/Content；既有全流程验证，本轮临时记录增改删 |
+| 数据表字段/视图 | table schema/field/view | 原 Web 协议；2026-09-24 验证字段及 GRID/KANBAN/CARD/CALENDAR，未穷举高级配置 |
+| 画板资源 | resource get/create/update | 精确编辑 Lake board 的 diagramData；本轮创建/更新、回读与 Chrome 渲染 |
+| 团队成员 | group members/member-set/member-remove | users、group_users；本轮成员读取，未改变真实成员权限/发送邀请 |
+| 团队统计 | stats group/members/books/docs | 当前网页 groupStatistics 接口适配；现有团队样本返回 404，未获得线上成功证据 |
 
-公开契约来源：[官方仓库](https://github.com/yuque/yuque-open-cli)、[OpenAPI spec](https://github.com/yuque/yuque-open-cli/blob/main/spec/yuque-openapi.yaml)。运行时以权限、当前服务响应及独立验证为准。
+## 数据与行为差异
 
-## 富格式与工作流
+- 其他用户库列表的公开部分来自其主页书架；主页未展示的公开库不能据此断言不存在。已知 URL 可直接读取。`complete` 表示这些已读取来源的分页结束。
+- 文档读取默认原生格式。Markdown 写入转换为 Lake；HTML 表示可能尚未由服务端生成，缺失时报 FORMAT，不能把空字符串当成成功的转换。
+- 小记纯文本替换生成一致的 source/html/abstract；富格式使用原生输入，保留未知结构。
+- 画板原生 JSON 与旧资源服务文本 DSL 的语法不同。`--dsl-file` 接受 diagramData JSON；完整 value 可保留主题、viewport 等。src 为快照，更新图形后清除过时快照。旧 DSL 没有静默透传到猜测的端点。
+- HTML 文件导入与 HTML 正文写入不同；原技能的内网文件导入能力不在此公网 CLI 范围。
+- 目录 UUID、文档 ID、子表/记录/字段/视图 ID 不可混用。目录 visible:0 的历史样本不生效，本工具报告回读不符，不将其视为权限功能。
+- 接口存在与账号获准调用是两回事。Web 也可能返回 429；明确停止，不自动重试写入、不回退 Open API。
 
-分栏、callout、codeblock、附件卡片已在本轮创建、精确回读并用 Chrome 验证。公网画册实际 type 为 CARD，已映射 GALLERY；日历配置绑定日期字段并显示日期网格（未穷举日期值格式）。原 Lake 书写/卡片参考和架构图/蓝图设计参考已迁移，按需加载；旧样本不是所有卡片的永久稳定规范。HTML 正文写入、资源新接口使用 submitted，不能假装已有全文等价或渲染证明。
+## 验证标准
 
-自动化测试覆盖同源凭据约束、错误账号、无写重试、服务故障未知状态、输入校验、分页推进/停滞、并发冲突、唯一片段、目录邻接、Sheet保真与批处理。单测不替代线上权限或复杂UI证明。
+自动化测试覆盖会话账号、同源凭据限制、禁用 Open 通道、正确搜索分页、全量库列表分页、未发布草稿保护、并发冲突、部分成功/未知状态、Markdown 转换、HTML 保存、画板邻近内容保留、Sheet 保真与目录顺序。测试通过不替代线上权限和界面验证。
 
-## 效率选择
-
-- 普通常规命令一个 Node 进程直达 API，无 OpenAuth/官方CLI二次启动。
-- 全Web工作流用同一session解析与核验，不消耗Open额度来取得内部ID。URL比裸数字ID少一次短链接解析。
-- 混合写入核对Token与Web账号；纯Web只核验正在使用的Web身份。
-- batch共用校验/缓存，字段选项与记录ID自动解析；响应提供紧凑结果和恢复所需ID。
-- 本轮触发过Open API 429：明确返回RATE_LIMIT，未自动重放写入。官方CLI共用同一Open API额度，不能作为限流绕过手段。
+网络实测仅在已有测试知识库/文档中写入。接口依据来自当前语雀网页实际下发的 API 包装及既有实测；知识库创建/删除、真实成员权限和统计成功响应仍属于未测边界。不要为“完整覆盖”盲目修改真实成员或分享范围。
