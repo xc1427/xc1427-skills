@@ -1,5 +1,6 @@
 ---
 name: cx1-asd-ste100
+disable-model-invocation: true
 description: Write, revise, or rewrite responses and technical prose 80% of the way toward ASD-STE100. Use when requested, including to rewrite a previous answer more clearly and concisely.
 ---
 
