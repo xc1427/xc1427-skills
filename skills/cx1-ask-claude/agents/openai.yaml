@@ -1,2 +1,5 @@
+interface:
+  display_name: "cx1: Ask Claude"
+
 policy:
   allow_implicit_invocation: false
