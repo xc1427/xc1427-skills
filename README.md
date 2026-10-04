@@ -14,6 +14,7 @@ Each skill is a Markdown file with YAML front matter (`name`, `description`) fol
 
 | Skill | Description |
 |-------|-------------|
+| [cx1-ask-claude](skills/cx1-ask-claude/SKILL.md) | Ask local Claude Code to perform a task or provide a second opinion; explicit invocation only |
 | [cx1-yuque](skills/cx1-yuque/SKILL.md) | Standalone Yuque CLI using Web API workflows, explicitly imported browser sessions, and write readback verification |
 | [cx1-instruct-sync](skills/cx1-instruct-sync/SKILL.md) | Explicitly commit and push personal instructions using repository-local sync rules |
 | [cx1-scripts](skills/cx1-scripts/SKILL.md) | Personal cx1-* script launcher — discover, run, and author scripts in `~/.local/bin` |
