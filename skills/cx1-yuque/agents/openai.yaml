@@ -1,3 +1,3 @@
 interface:
-  display_name: "cx1-yuque"
+  display_name: "cx1: Yuque"
   short_description: "通过 CLI 操作公网语雀，统一使用 Web API 并核验读写结果"
