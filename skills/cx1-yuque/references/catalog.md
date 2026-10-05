@@ -40,3 +40,7 @@ yq toc remove OWNER/BOOK --node UUID --with-children
 HTTP 200 不够。若部分结果与回读不一致，查看 completed/UUID，再查询两侧目录；禁止直接重发复制或批量移动。
 
 目录命令统一 Web API；`--via web` 仅为兼容参数。`toc destroy --node UUID --with-children --yes` 是 Web 删除到回收站语义；不要与 remove 混淆。visible:0 在公网历史实测未生效，本工具会报告回读不符，不将其宣称为已支持隐藏/权限操作。
+
+## 新建后精确定位
+
+公网实测：`doc create --target UUID --position moveBefore` 可能在文档已创建后因 `/api/docs/add_to_catalog` 返回 422 而停止。不要重发创建；先查询知识库文档列表找到已创建的文档。可靠流程是 `doc create --no-attach` → `toc attach BOOK --doc NEW_ID`（先默认挂到根目录）→ `toc move BOOK --node NEW_UUID --target TARGET_UUID --position moveBefore`。最后回读父节点和相邻顺序。

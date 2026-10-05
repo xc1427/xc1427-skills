@@ -273,7 +273,8 @@ export async function importSession(
 
 export async function downloadExport(client, source, file, type) {
   const url = new URL(source, ORIGIN);
-  if (url.origin !== ORIGIN || !url.pathname.startsWith("/attachments/"))
+  const lakeExport = type === "lake" && /^\/[^/]+\/[^/]+\/[^/]+\/lake$/.test(url.pathname);
+  if (url.origin !== ORIGIN || (!url.pathname.startsWith("/attachments/") && !lakeExport))
     fail(
       "DOWNLOAD_ORIGIN",
       "下载地址不在本站附件路径；请另行核验目标，不携带本站凭据。",
@@ -317,7 +318,8 @@ export async function downloadExport(client, source, file, type) {
     });
   const bytes = Buffer.from(await response.arrayBuffer());
   if (
-    response.headers.get("content-type")?.includes("text/html") ||
+    (response.headers.get("content-type")?.includes("text/html") && !lakeExport) ||
+    (type === "lake" && !bytes.toString("utf8").startsWith("<!doctype lake>")) ||
     (type === "excel" &&
       !bytes.subarray(0, 4).equals(Buffer.from([80, 75, 3, 4])))
   )

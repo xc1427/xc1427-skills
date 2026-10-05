@@ -81,7 +81,7 @@ codeblock 卡片的 value JSON：
 
 ```html
 <p data-lake-id="u2001"><span data-lake-id="u2002">以下是 TypeScript 示例：</span></p>
-<card type="block" name="codeblock" value="%7B%22id%22%3A%22code01%22%2C%22mode%22%3A%22typescript%22%2C%22code%22%3A%22interface%20User%20%7B%5Cn%20%20name%3A%20string%3B%5Cn%20%20age%3A%20number%3B%5Cn%7D%5Cn%5Cnfunction%20greet(user%3A%20User)%3A%20string%20%7B%5Cn%20%20return%20%60Hello%2C%20%24%7Buser.name%7D!%60%3B%5Cn%7D%22%2C%22lineNumbers%22%3Atrue%7D"></card>
+<card type="block" name="codeblock" value="data:%7B%22id%22%3A%22code01%22%2C%22mode%22%3A%22typescript%22%2C%22code%22%3A%22interface%20User%20%7B%5Cn%20%20name%3A%20string%3B%5Cn%20%20age%3A%20number%3B%5Cn%7D%5Cn%5Cnfunction%20greet(user%3A%20User)%3A%20string%20%7B%5Cn%20%20return%20%60Hello%2C%20%24%7Buser.name%7D!%60%3B%5Cn%7D%22%2C%22lineNumbers%22%3Atrue%7D"></card>
 ```
 
 ---
@@ -141,7 +141,7 @@ codeblock 卡片的 value JSON：
 完整 Lake HTML：
 
 ```html
-<card type="block" name="table" value="%7B%22id%22%3A%22t01%22%2C%22rows%22%3A3%2C%22cols%22%3A3%2C%22html%22%3A%22%3Ctable%20class%3D%5C%22lake-table%5C%22%20style%3D%5C%22width%3A%20600px%3B%5C%22%3E%3Ccolgroup%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3C%2Fcolgroup%3E%3Ctbody%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E5%8A%9F%E8%83%BD%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E7%8A%B6%E6%80%81%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E8%B4%9F%E8%B4%A3%E4%BA%BA%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%3E%3Cp%3E%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%E5%B7%B2%E5%AE%8C%E6%88%90%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%E5%BC%A0%E4%B8%89%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%3E%3Cp%3E%E6%95%B0%E6%8D%AE%E5%AF%BC%E5%87%BA%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%E8%BF%9B%E8%A1%8C%E4%B8%AD%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%E6%9D%8E%E5%9B%9B%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3C%2Ftbody%3E%3C%2Ftable%3E%22%7D"></card>
+<card type="block" name="table" value="data:%7B%22id%22%3A%22t01%22%2C%22rows%22%3A3%2C%22cols%22%3A3%2C%22html%22%3A%22%3Ctable%20class%3D%5C%22lake-table%5C%22%20style%3D%5C%22width%3A%20600px%3B%5C%22%3E%3Ccolgroup%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3C%2Fcolgroup%3E%3Ctbody%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E5%8A%9F%E8%83%BD%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E7%8A%B6%E6%80%81%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E8%B4%9F%E8%B4%A3%E4%BA%BA%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%3E%3Cp%3E%E7%94%A8%E6%88%B7%E7%AE%A1%E7%90%86%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%E5%B7%B2%E5%AE%8C%E6%88%90%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%E5%BC%A0%E4%B8%89%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%3E%3Cp%3E%E6%95%B0%E6%8D%AE%E5%AF%BC%E5%87%BA%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%E8%BF%9B%E8%A1%8C%E4%B8%AD%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%E6%9D%8E%E5%9B%9B%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3C%2Ftbody%3E%3C%2Ftable%3E%22%7D"></card>
 ```
 
 ---
@@ -177,7 +177,7 @@ diagram 卡片的 value JSON：
 完整 Lake HTML：
 
 ```html
-<card type="block" name="diagram" value="%7B%22id%22%3A%22diag01%22%2C%22type%22%3A%22mermaid%22%2C%22code%22%3A%22graph%20TD%5Cn%20%20A%5B%E7%94%A8%E6%88%B7%E8%AF%B7%E6%B1%82%5D%20--%3E%20B%7B%E9%89%B4%E6%9D%83%7D%5Cn%20%20B%20--%3E%7C%E9%80%9A%E8%BF%87%7C%20C%5B%E4%B8%9A%E5%8A%A1%E5%A4%84%E7%90%86%5D%5Cn%20%20B%20--%3E%7C%E6%8B%92%E7%BB%9D%7C%20D%5B%E8%BF%94%E5%9B%9E%20403%5D%5Cn%20%20C%20--%3E%20E%5B%E8%BF%94%E5%9B%9E%E7%BB%93%E6%9E%9C%5D%22%2C%22margin%22%3A%7B%22top%22%3Atrue%2C%22bottom%22%3Atrue%7D%7D"></card>
+<card type="block" name="diagram" value="data:%7B%22id%22%3A%22diag01%22%2C%22type%22%3A%22mermaid%22%2C%22code%22%3A%22graph%20TD%5Cn%20%20A%5B%E7%94%A8%E6%88%B7%E8%AF%B7%E6%B1%82%5D%20--%3E%20B%7B%E9%89%B4%E6%9D%83%7D%5Cn%20%20B%20--%3E%7C%E9%80%9A%E8%BF%87%7C%20C%5B%E4%B8%9A%E5%8A%A1%E5%A4%84%E7%90%86%5D%5Cn%20%20B%20--%3E%7C%E6%8B%92%E7%BB%9D%7C%20D%5B%E8%BF%94%E5%9B%9E%20403%5D%5Cn%20%20C%20--%3E%20E%5B%E8%BF%94%E5%9B%9E%E7%BB%93%E6%9E%9C%5D%22%2C%22margin%22%3A%7B%22top%22%3Atrue%2C%22bottom%22%3Atrue%7D%7D"></card>
 ```
 
 ---
@@ -187,7 +187,7 @@ diagram 卡片的 value JSON：
 ```html
 <p data-lake-id="u5001">
   <span data-lake-id="u5002">请 </span>
-  <card type="inline" name="mention" value="%7B%22id%22%3A%22mt01%22%2C%22name%22%3A%22%E5%BC%A0%E4%B8%89%22%2C%22userid%22%3A%2212345%22%7D"></card>
+  <card type="inline" name="mention" value="data:%7B%22id%22%3A%22mt01%22%2C%22name%22%3A%22%E5%BC%A0%E4%B8%89%22%2C%22userid%22%3A%2212345%22%7D"></card>
   <span data-lake-id="u5003"> 查看 </span>
   <a href="https://www.yuque.com/OWNER/BOOK/DOC" target="_blank" data-lake-id="u5004">
     <span data-lake-id="u5005">需求文档</span>
@@ -229,12 +229,12 @@ diagram 卡片的 value JSON：
 </p>
 <card type="block" name="hr" value="null"></card>
 <h2 id="u7007"><span data-lake-id="u7008">环境要求</span></h2>
-<card type="block" name="table" value="%7B%22id%22%3A%22t02%22%2C%22rows%22%3A3%2C%22cols%22%3A2%2C%22html%22%3A%22%3Ctable%20class%3D%5C%22lake-table%5C%22%20style%3D%5C%22width%3A%20400px%3B%5C%22%3E%3Ccolgroup%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3C%2Fcolgroup%3E%3Ctbody%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E4%BE%9D%E8%B5%96%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E7%89%88%E6%9C%AC%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%3E%3Cp%3ENode.js%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%26gt%3B%3D%2016.0%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%3E%3Cp%3EReact%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%26gt%3B%3D%2018.0%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3C%2Ftbody%3E%3C%2Ftable%3E%22%7D"></card>
+<card type="block" name="table" value="data:%7B%22id%22%3A%22t02%22%2C%22rows%22%3A3%2C%22cols%22%3A2%2C%22html%22%3A%22%3Ctable%20class%3D%5C%22lake-table%5C%22%20style%3D%5C%22width%3A%20400px%3B%5C%22%3E%3Ccolgroup%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3Ccol%20width%3D%5C%22200%5C%22%3E%3C%2Fcolgroup%3E%3Ctbody%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E4%BE%9D%E8%B5%96%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%20style%3D%5C%22background-color%3A%20%23F5F5F5%3B%5C%22%3E%3Cp%3E%E7%89%88%E6%9C%AC%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%3E%3Cp%3ENode.js%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%26gt%3B%3D%2016.0%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3Ctr%20style%3D%5C%22height%3A%2033px%3B%5C%22%3E%3Ctd%3E%3Cp%3EReact%3C%2Fp%3E%3C%2Ftd%3E%3Ctd%3E%3Cp%3E%26gt%3B%3D%2018.0%3C%2Fp%3E%3C%2Ftd%3E%3C%2Ftr%3E%3C%2Ftbody%3E%3C%2Ftable%3E%22%7D"></card>
 <h2 id="u7009"><span data-lake-id="u700a">快速开始</span></h2>
 <p data-lake-id="u700b"><span data-lake-id="u700c">安装依赖：</span></p>
-<card type="block" name="codeblock" value="%7B%22id%22%3A%22c02%22%2C%22mode%22%3A%22shell%22%2C%22code%22%3A%22npm%20install%20%40alipay%2Flakex-doc%22%7D"></card>
+<card type="block" name="codeblock" value="data:%7B%22id%22%3A%22c02%22%2C%22mode%22%3A%22shell%22%2C%22code%22%3A%22npm%20install%20%40alipay%2Flakex-doc%22%7D"></card>
 <p data-lake-id="u700d"><span data-lake-id="u700e">创建编辑器实例：</span></p>
-<card type="block" name="codeblock" value="%7B%22id%22%3A%22c03%22%2C%22mode%22%3A%22typescript%22%2C%22code%22%3A%22import%20%7B%20createOpenEditor%20%7D%20from%20'%40alipay%2Flakex-doc'%3B%5Cn%5Cnconst%20editor%20%3D%20createOpenEditor(%7B%5Cn%20%20el%3A%20document.getElementById('editor')%2C%5Cn%7D)%3B%5Cneditor.setContent(data)%3B%22%2C%22lineNumbers%22%3Atrue%7D"></card>
+<card type="block" name="codeblock" value="data:%7B%22id%22%3A%22c03%22%2C%22mode%22%3A%22typescript%22%2C%22code%22%3A%22import%20%7B%20createOpenEditor%20%7D%20from%20'%40alipay%2Flakex-doc'%3B%5Cn%5Cnconst%20editor%20%3D%20createOpenEditor(%7B%5Cn%20%20el%3A%20document.getElementById('editor')%2C%5Cn%7D)%3B%5Cneditor.setContent(data)%3B%22%2C%22lineNumbers%22%3Atrue%7D"></card>
 <h2 id="u700f"><span data-lake-id="u7010">注意事项</span></h2>
 <ul list="ua020">
   <li fid="ua020" data-lake-id="u7011">

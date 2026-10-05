@@ -257,14 +257,14 @@ Lake 通过三种机制实现内联样式。
 ### 语法
 
 ```html
-<card type="block|inline" name="卡片名" value="URL编码的JSON"></card>
+<card type="block|inline" name="卡片名" value="data:URL编码的JSON"></card>
 ```
 
 | 属性 | 说明 |
 |------|------|
 | `type` | `"block"`（独占一行）或 `"inline"`（与文本混排） |
 | `name` | 卡片类型标识符 |
-| `value` | `` + `encodeURIComponent(JSON.stringify(valueObject))` |
+| `value` | `data:` + `encodeURIComponent(JSON.stringify(valueObject))` |
 
 ### Value 编码规则
 
