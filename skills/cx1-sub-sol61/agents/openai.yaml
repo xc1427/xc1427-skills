@@ -1,5 +1,5 @@
 interface:
-  display_name: "cx1: Sub Sol6.1"
+  display_name: "cx1: Sub Sol 6.1"
   short_description: "将当前指派的任务委派给 GPT-6.1 Sol 子代理执行"
   default_prompt: "使用 $cx1-sub-sol61 将我当前指派的工作委派给 GPT-6.1 Sol 子代理完成。"
 
