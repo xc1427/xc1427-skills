@@ -25,6 +25,7 @@ yq doc patch https://www.yuque.com/OWNER/BOOK/DOC --input edits.json
 - `resource get/create/update --doc DOC` 操作文档中的原生画板卡片。通过 `--input` 提供 `diagramData` 或完整 `value`，也可用 `--dsl-file` 输入原生 JSON。目标为卡片 id（或唯一 src），不接受旧资源服务的文本 DSL。模板见 Lake/架构图/蓝图参考。
 - 多个任务用 `batch --input steps.json`，共享进程、会话校验和缓存。已有 `--via web` 参数保持兼容，其他通道被拒绝。
 - 未封装但已确认协议的操作用 `api web METHOD /api/... --input FILE`。原始写入只返回 `submitted`，仍需回读与必要的 Chrome 验证。
+- 读取评论及其划词原文、范围时，使用 `include_section=true` 的评论接口，见 [命令参考中的评论与划词范围](references/cli.md#评论与划词范围)；不必逐条打开浏览器。
 
 按任务读取：[命令与批处理](references/cli.md)、[目录](references/catalog.md)、[Sheet/数据表](references/tables.md)、[富格式和附件](references/lake.md)、[精确编辑](references/incremental-update.md)。完整原能力映射见 [coverage.md](references/coverage.md)。
 

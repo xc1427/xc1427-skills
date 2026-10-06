@@ -87,4 +87,18 @@ yq batch --input steps.json --output run.json
 
 ## 低层请求
 
+### 评论与划词范围
+
+先从文档读取结果取得数字文档 ID，再读取评论及关联划词：
+
+```bash
+yq api web GET "/api/comments/floor?commentable_type=Doc&commentable_id=${doc_id}&include_section=true"
+```
+
+CLI 结果的 `data.data.comments` 为评论数组，`data.data.meta` 提供 `hasMore`、`lastId` 等分页信息；单次结果不保证覆盖全部评论。
+
+划词评论中的 `selection.text` 是被选中的原文，`selection.selection_range.start/end` 包含 `id`、`text`、`offset`、`paragraphId`、`paragraphOffset`；`selection.doc_version_id` 和 `doc_version` 标识选区所属版本。选区可能跨段落，不要只凭一个节点 ID 或评论内容推断范围，也不要直接将历史选区套到已修改的正文。
+
+关键参数是 **`include_section=true`**，不是 `include_selection=true`。普通评论列表或单条评论读取可能只有 `selection_id`，不能据此断定 API 不支持划词范围。非划词评论无需有 `selection`。
+
 `api web PUT /api/... --input file.json` 固定公网同源；不能传任意主机、路径穿越或 `/api/v2/`。CLI 不读取 Open API Token，`api open` 和 `official` 已移除。遇到未覆盖的协议先查当前网页，不回退至 Open API。
