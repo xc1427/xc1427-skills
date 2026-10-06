@@ -21,6 +21,7 @@ yq doc patch https://www.yuque.com/OWNER/BOOK/DOC --input edits.json
 - 文档、知识库、目录、小记、搜索、团队和统计均走 Web API。普通 `search` 默认“与我相关”，包含协作库和已加入团队；`--scope OWNER/BOOK` 限定范围，`--page` 映射网页的 `p`。`search web` 用于全站发现或原生筛选。
 - 跨库复制/移动、附件、Sheet、数据表沿用同一个 Web 会话。`attachment add DOC --file FILE` 完成上传、生成 Lake 卡片、保留原文追加、保存发布与回读。
 - 文档读取默认返回原生格式。`--format markdown` 通过网页导出读取；创建/替换 Markdown 会先转换为 Lake，再精确核验。HTML 原文可创建/更新；Lake 的 HTML 表示仅在服务端已生成时可读，缺失则明确报错。
+- 新建文档默认省略 `--slug`，保留语雀生成的随机值；只有用户明确指定 slug 时才传入，不根据标题或日期主动生成语义化名称。已有文档保留原 slug，除非用户要求修改。后续定位使用创建结果中的完整 URL 或文档 ID。
 - `resource get/create/update --doc DOC` 操作文档中的原生画板卡片。通过 `--input` 提供 `diagramData` 或完整 `value`，也可用 `--dsl-file` 输入原生 JSON。目标为卡片 id（或唯一 src），不接受旧资源服务的文本 DSL。模板见 Lake/架构图/蓝图参考。
 - 多个任务用 `batch --input steps.json`，共享进程、会话校验和缓存。已有 `--via web` 参数保持兼容，其他通道被拒绝。
 - 未封装但已确认协议的操作用 `api web METHOD /api/... --input FILE`。原始写入只返回 `submitted`，仍需回读与必要的 Chrome 验证。
