@@ -8,6 +8,8 @@ import {
   loadSession,
   sessionPath,
   Client,
+  ORIGIN,
+  assertHost,
 } from "./core.mjs";
 import { Runtime } from "./runtime.mjs";
 import { commands, validate, dispatch } from "./commands.mjs";
@@ -136,6 +138,7 @@ export async function execute(r, { name, target, o }) {
       const s = loadSession(),
         c = new Client({ mode: "web", session: s });
       result = {
+        origin: ORIGIN,
         account: await c.check(),
         importedAt: s.importedAt,
         expiresAt: s.expiresAt || null,
@@ -188,6 +191,7 @@ export async function execute(r, { name, target, o }) {
   return dispatch(r, name, target, o);
 }
 export async function main(argv = process.argv.slice(2)) {
+  assertHost();
   if (!argv.length || ["help", "--help", "-h"].includes(argv[0])) {
     process.stdout.write(
       "cx1-yuque — 自有 CLI，Node >=22，无运行时 npm 依赖\n用法: yuque.sh COMMAND [URL/ID] [--key value]\n\n" +
@@ -206,7 +210,7 @@ export async function main(argv = process.argv.slice(2)) {
                 : ""),
           )
           .join("\n") +
-        "\n\n文件输入: --body-file/--dsl-file/--rows-file/--cells-file/--values-file/--options-file；--input JSON_FILE\n所有命令支持 --output NEW_FILE；读取 --text。默认 JSON。布尔用 --flag/--no-flag。\nbatch --input STEPS.json 共享进程、账号校验与对象缓存。\n",
+        "\n\n文件输入: --body-file/--dsl-file/--rows-file/--cells-file/--values-file/--options-file；--input JSON_FILE\n站点: 推荐单次命令 YUQUE_HOST=https://SPACE.yuque.com yq COMMAND；未设置或空值用主站，各站点独立缓存 session。\n所有命令支持 --output NEW_FILE；读取 --text。默认 JSON。布尔用 --flag/--no-flag。\nbatch --input STEPS.json 共享进程、账号校验与对象缓存。\n",
     );
     return;
   }

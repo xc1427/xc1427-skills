@@ -9,7 +9,7 @@
 - 文档列表、库列表、搜索默认精简字段；`--raw` 保留完整结果。scope 使用 OWNER/BOOK 或团队 login，不是数字库 ID。
 - 默认 JSON `{status,route,data,completed?}`。`--text` 输出正文或 Markdown 表格；`--output NEW_FILE` 为 0600 且拒绝覆盖，发请求前检查路径。
 - 布尔用 `--flag` / `--no-flag`；未知、重复、缺值参数报错。数值参数需要整数。
-- 对象接受公网 URL；库接受 `OWNER/BOOK` 或数字 ID；文档可用全局数字 ID，slug 需 `--book`。
+- 推荐通过单次命令 `YUQUE_HOST=https://SPACE.yuque.com yq ...` 显式选择空间，默认主站；先导入该站点会话。对象接受所选站点的公网 URL；库接受 `OWNER/BOOK` 或数字 ID；文档可用全局数字 ID，slug 需 `--book`。
 - 同名对象拒绝猜测，错误携带候选 ID。错误不回显凭据、请求头和服务端原始错误正文。
 
 ## 主要命令
@@ -101,4 +101,4 @@ CLI 结果的 `data.data.comments` 为评论数组，`data.data.meta` 提供 `ha
 
 关键参数是 **`include_section=true`**，不是 `include_selection=true`。普通评论列表或单条评论读取可能只有 `selection_id`，不能据此断定 API 不支持划词范围。非划词评论无需有 `selection`。
 
-`api web PUT /api/... --input file.json` 固定公网同源；不能传任意主机、路径穿越或 `/api/v2/`。CLI 不读取 Open API Token，`api open` 和 `official` 已移除。遇到未覆盖的协议先查当前网页，不回退至 Open API。
+`api web PUT /api/... --input file.json` 固定当前选定站点同源；不能传任意主机、路径穿越或 `/api/v2/`。CLI 不读取 Open API Token，`api open` 和 `official` 已移除。遇到未覆盖的协议先查当前网页，不回退至 Open API。

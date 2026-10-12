@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { randomUUID } from "node:crypto";
-export const ORIGIN = "https://www.yuque.com";
 export class Failure extends Error {
   constructor(code, message, details = {}) {
     super(message);
@@ -13,10 +12,57 @@ export class Failure extends Error {
 export function fail(code, message, details) {
   throw new Failure(code, message, details);
 }
+export function normalizeOrigin(value = "https://www.yuque.com") {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    fail("HOST", "YUQUE_HOST 必须是 HTTPS 语雀站点地址。");
+  }
+  if (
+    url.protocol !== "https:" || url.username || url.password || url.port ||
+    url.pathname !== "/" || url.search || url.hash ||
+    !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.yuque\.com$/.test(url.hostname)
+  )
+    fail("HOST", "仅支持 https://www.yuque.com 或 HTTPS 语雀空间子域名。");
+  return url.origin;
+}
+// 延迟抛出配置错误，让 CLI 入口能按统一 JSON 格式报告；非法配置不回退主站。
+let hostError;
+export const ORIGIN = (() => {
+  try {
+    return normalizeOrigin(process.env.YUQUE_HOST || undefined);
+  } catch (e) {
+    hostError = e;
+    return undefined;
+  }
+})();
+export function assertHost() {
+  if (hostError) throw hostError;
+}
+function sessionOrigin(session) {
+  // 旧缓存只属于主站，不能当成任意空间的认证凭据。
+  return normalizeOrigin(session.origin || "https://www.yuque.com");
+}
+export function assertSessionOrigin(session) {
+  assertHost();
+  if (sessionOrigin(session) !== ORIGIN)
+    fail(
+      "SESSION_ORIGIN",
+      "Session 与 YUQUE_HOST 不匹配；请显式导入目标站点的会话。",
+    );
+}
 export function sessionPath() {
+  assertHost();
   return (
     process.env.YUQUE_SESSION_FILE ||
-    path.join(os.homedir(), ".config/cx1-yuque/session.json")
+    path.join(
+      os.homedir(),
+      ".config/cx1-yuque",
+      ORIGIN === "https://www.yuque.com"
+        ? "session.json"
+        : `session-${new URL(ORIGIN).hostname}.json`,
+    )
   );
 }
 export function parseCookie(raw) {
@@ -41,7 +87,7 @@ export function parseCookie(raw) {
     if (!pairs.get(key))
       fail(
         "SESSION_INPUT",
-        `缺少 ${key}；请从已登录 www.yuque.com 的请求头重新取得。`,
+        `缺少 ${key}；请从已登录目标语雀站点的请求头重新取得。`,
       );
   return {
     _yuque_session: pairs.get("_yuque_session"),
@@ -62,6 +108,7 @@ export function protectFile(file) {
     );
 }
 export function saveSession(session, file = sessionPath()) {
+  assertSessionOrigin(session);
   const dir = path.dirname(file);
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   const st = fs.lstatSync(dir);
@@ -70,12 +117,22 @@ export function saveSession(session, file = sessionPath()) {
       "SESSION_PERMISSIONS",
       "Session 所在目录必须是私有目录（0700），不能是符号链接。",
     );
-  if (fs.existsSync(file)) protectFile(file);
+  if (fs.existsSync(file)) {
+    protectFile(file);
+    let previous;
+    try {
+      previous = JSON.parse(fs.readFileSync(file, "utf8"));
+    } catch {
+      fail("SESSION_INPUT", "已有 Session 文件不是有效 JSON；请显式移除后再导入。");
+    }
+    assertSessionOrigin(previous);
+  }
   const tmp = path.join(dir, `.session-${randomUUID()}`);
   fs.writeFileSync(tmp, JSON.stringify(session), { mode: 0o600, flag: "wx" });
   fs.renameSync(tmp, file);
 }
 export function loadSession(file = sessionPath()) {
+  assertHost();
   if (!fs.existsSync(file))
     fail(
       "SESSION_MISSING",
@@ -90,6 +147,7 @@ export function loadSession(file = sessionPath()) {
   }
   if (s.version !== 1 || !s.account?.id || !s.account?.login)
     fail("SESSION_INPUT", "Session 结构无效，请重新导入。");
+  assertSessionOrigin(s);
   s.cookies = parseCookie(
     Object.entries(s.cookies || {})
       .map(([k, v]) => `${k}=${v}`)
@@ -104,6 +162,7 @@ export function loadSession(file = sessionPath()) {
   return s;
 }
 export function safePath(input, mode) {
+  assertHost();
   if (
     typeof input !== "string" ||
     !input.startsWith("/api/") ||
@@ -128,6 +187,7 @@ export function safePath(input, mode) {
 }
 export class Client {
   constructor({ mode = "web", session, fetcher = fetch }) {
+    assertSessionOrigin(session);
     Object.assign(this, { mode, session, fetcher });
     this.checked = false;
   }
@@ -247,6 +307,7 @@ export async function importSession(
     fail("INPUT", "--expires 必须是未来的 ISO 时间。");
   const session = {
     version: 1,
+    origin: ORIGIN,
     cookies: parseCookie(raw),
     account: { id: "pending", login },
     importedAt: new Date().toISOString(),
@@ -264,6 +325,7 @@ export async function importSession(
   session.account = { id: me.id, login: me.login };
   saveSession(session, file);
   return {
+    origin: ORIGIN,
     account: session.account,
     importedAt: session.importedAt,
     expiresAt: expiresAt || null,

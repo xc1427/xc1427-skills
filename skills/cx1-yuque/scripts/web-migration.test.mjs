@@ -1,3 +1,4 @@
+import "./test-env.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Runtime } from "./runtime.mjs";

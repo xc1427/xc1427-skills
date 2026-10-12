@@ -26,7 +26,7 @@ export function parseTarget(input) {
       fail("TARGET", "URL 无效。");
     }
     if (u.origin !== ORIGIN)
-      fail("TARGET", "仅接受 https://www.yuque.com 的对象 URL。");
+      fail("TARGET", "对象 URL 与当前站点不匹配；用 YUQUE_HOST 显式选择该语雀空间。");
     const s = u.pathname.split("/").filter(Boolean).map(decodeURIComponent);
     if (s[0] === "go" && s[1] === "doc" && /^\d+$/.test(s[2]))
       return { type: "doc", id: s[2] };

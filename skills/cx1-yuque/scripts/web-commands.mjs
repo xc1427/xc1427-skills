@@ -1,4 +1,4 @@
-import { fail } from "./core.mjs";
+import { fail, ORIGIN } from "./core.mjs";
 import { enc, query, equalFields, parseTarget, hash } from "./runtime.mjs";
 import { webProfile } from "./web-context.mjs";
 import { resourceCommand } from "./resources.mjs";
@@ -346,7 +346,7 @@ export async function webCommand(r, group, action, target, o) {
         (x) => x.content?.source === source,
       );
       return r.result(
-        { id, url: "https://www.yuque.com/r/note/" + after.slug },
+        { id, url: ORIGIN + "/r/note/" + after.slug },
         "verified",
       );
     }
@@ -356,7 +356,7 @@ export async function webCommand(r, group, action, target, o) {
       return r.result({
         ...n,
         sha256: hash(n.content),
-        url: "https://www.yuque.com/r/note/" + n.slug,
+        url: ORIGIN + "/r/note/" + n.slug,
       });
     }
     if (action === "update") {
@@ -411,7 +411,7 @@ export async function webCommand(r, group, action, target, o) {
       return r.result(
         {
           id: after.id,
-          url: "https://www.yuque.com/r/note/" + after.slug,
+          url: ORIGIN + "/r/note/" + after.slug,
           sha256: hash(after.content),
         },
         "verified",

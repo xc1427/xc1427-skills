@@ -1,6 +1,6 @@
 ---
 name: cx1-yuque
-description: 用统一自有 CLI 操作公网语雀 yuque.com 的文档、知识库、目录、小记、附件、Sheet 和数据表；全部通过绑定账号的 Web API 会话完成，并做写前检查和写后回读。用户要求读取、搜索、创建、编辑或整理语雀内容时使用。
+description: 用统一自有 CLI 操作公网语雀主站及空间子域名的文档、知识库、目录、小记、附件、Sheet 和数据表；全部通过绑定账号的 Web API 会话完成，并做写前检查和写后回读。用户要求读取、搜索、创建、编辑或整理语雀内容时使用。
 ---
 
 # 公网语雀
@@ -14,7 +14,9 @@ yq doc read https://www.yuque.com/OWNER/BOOK/DOC --format lake --output original
 yq doc patch https://www.yuque.com/OWNER/BOOK/DOC --input edits.json
 ```
 
-所有远端操作使用同一个 Web session，包括身份检查、URL 解析、读取、写入和回读。按 [session.md](references/session.md) 从 Chrome 显式导入并核验账号。CLI 不读取 `YUQUE_TOKEN`/`YUQUE_PERSONAL_TOKEN`，拒绝 `/api/v2/`，没有 Open API 或官方 CLI 降级分支。会话失效后停止，不后台保活、静默登录或自动换凭据。
+默认站点为 `https://www.yuque.com`；空间链接使用 单次命令前缀 `YUQUE_HOST=https://SPACE.yuque.com yq ...` 显式选择站点，并从该空间的 Chrome 页面导入会话。各站点独立缓存，Cookie 与站点绑定；不把主站会话用于空间，也不跨站跟随重定向。搜索结果为空时先确认当前站点和会话。
+
+所有远端操作使用当前站点的同一个 Web session，包括身份检查、URL 解析、读取、写入和回读。按 [session.md](references/session.md) 从 Chrome 显式导入并核验账号。CLI 不读取 `YUQUE_TOKEN`/`YUQUE_PERSONAL_TOKEN`，拒绝 `/api/v2/`，没有 Open API 或官方 CLI 降级分支。会话失效后停止，不后台保活、静默登录或自动换凭据。
 
 ## 按完整任务选择命令
 

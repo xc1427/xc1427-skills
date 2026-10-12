@@ -1,14 +1,20 @@
 import http from "node:http";
 import { randomBytes } from "node:crypto";
-import { importSession, fail, Failure } from "./core.mjs";
-export async function receive(login, expiresAt) {
+import { importSession, fail, Failure, ORIGIN, assertHost } from "./core.mjs";
+// 依赖注入用于本地验证 Origin/CORS 和关闭行为，无需监听端口或导入真实会话。
+export async function receive(login, expiresAt, {
+  createServer = http.createServer,
+  importer = importSession,
+  report = (message) => process.stderr.write(message),
+} = {}) {
+  assertHost();
   if (!login) fail("INPUT", "必须指定 --account LOGIN。");
   const nonce = randomBytes(24).toString("hex");
   return new Promise((resolve, reject) => {
     let busy = false;
-    const server = http.createServer(async (req, res) => {
+    const server = createServer(async (req, res) => {
       const origin = req.headers.origin;
-      if (origin && origin !== "https://www.yuque.com") {
+      if (origin && origin !== ORIGIN) {
         res.writeHead(403);
         res.end();
         return;
@@ -18,7 +24,7 @@ export async function receive(login, expiresAt) {
         res.end();
         return;
       }
-      res.setHeader("Access-Control-Allow-Origin", "https://www.yuque.com");
+      res.setHeader("Access-Control-Allow-Origin", ORIGIN);
       res.setHeader("Access-Control-Allow-Private-Network", "true");
       res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
       res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -40,7 +46,7 @@ export async function receive(login, expiresAt) {
           if (Buffer.byteLength(raw) > 16384) throw Error("size");
         }
         clearTimeout(timer);
-        const result = await importSession(raw, login, expiresAt);
+        const result = await importer(raw, login, expiresAt);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end('{"imported":true}');
         clearTimeout(timer);
@@ -69,11 +75,12 @@ export async function receive(login, expiresAt) {
       reject(e);
     });
     server.listen(0, "127.0.0.1", () =>
-      process.stderr.write(
+      report(
         JSON.stringify({
           receiveUrl: `http://127.0.0.1:${server.address().port}/${nonce}`,
           expiresInSeconds: 120,
           account: login,
+          origin: ORIGIN,
         }) + "\n",
       ),
     );
