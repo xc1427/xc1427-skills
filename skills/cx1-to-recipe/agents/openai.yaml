@@ -1,0 +1,4 @@
+interface:
+  display_name: "cx1: To Recipe"
+  short_description: "把指定日记段落的烹饪记录整理为语雀数据表中的单独菜品条目"
+  default_prompt: "使用 $cx1-to-recipe 预览我指定的烹饪段落，按菜品整理照片。"
