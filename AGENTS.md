@@ -12,7 +12,7 @@
 
 ## Skill Authoring Guidelines
 
-CX1 skills must set `interface.display_name` in `agents/openai.yaml` to `cx1: <Readable Name>`; use spaces between words and model version numbers, preserving standard capitalization such as `AFK`, `ChatGPT`, and `ASD-STE100` (for example, `cx1: Yuque` or `cx1: Sub Sol 6.1`).
+CX1 skills must set `interface.display_name` in `agents/openai.yaml` to `cx1: <Readable Name>`; use spaces between words and model version numbers, preserving standard capitalization such as `AFK`, `ChatGPT`, and `ASD-STE100` (for example, `cx1: Yuque` or `cx1: Sub Sol 6.2`).
 
 ### Keep invocation policy aligned across Codex and Claude Code
 

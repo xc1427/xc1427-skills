@@ -18,7 +18,7 @@ Each skill lives in `skills/<skill-name>/`. Its `SKILL.md` is the entry point an
 | [cx1-git-worktree](skills/cx1-git-worktree/SKILL.md) | Create and remove worktrees managed by this skill, sync commits across them, and install standalone scripts. | Explicit only |
 | [cx1-man-tongue](skills/cx1-man-tongue/SKILL.md) | Draft or revise concise, natural Chinese prose for the current turn. | Explicit only |
 | [cx1-scripts](skills/cx1-scripts/SKILL.md) | Discover, run, and author personal `cx1-*` scripts in `~/.local/bin`. | Automatic |
-| [cx1-sub-sol61](skills/cx1-sub-sol61/SKILL.md) | Delegate the assigned task to a GPT-6.1 Sol subagent. | Explicit only |
+| [cx1-sub-sol62](skills/cx1-sub-sol62/SKILL.md) | Delegate the assigned task to a GPT-6.2 Sol subagent. | Explicit only |
 | [cx1-sub-terra61](skills/cx1-sub-terra61/SKILL.md) | Delegate the assigned task to a GPT-6.1 Terra subagent. | Explicit only |
 | [cx1-tibo-post](skills/cx1-tibo-post/SKILL.md) | Summarize substantive X posts by Tibo Sottiaux from today and the two preceding days. | Automatic |
 | [cx1-to-recipe](skills/cx1-to-recipe/SKILL.md) | Group cooking diary photos by dish and preview or write recipe records to a Yuque data table. | Automatic |
