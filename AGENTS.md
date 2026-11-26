@@ -5,6 +5,11 @@
 - Never hardcode absolute home directory paths such as `/Users/<username>/` in files committed to the repository. Use `$HOME`, `~`, or another portable alternative.
 - Before committing, check that tracked files do not contain personal usernames, home paths, email addresses, or hostnames.
 
+### README consistency
+
+- Check [README.md](README.md) against the final repository state whenever you update the repository. Update any affected README content in the same change.
+- When adding, renaming, removing, or materially changing a skill, verify its catalog entry, link, description, and invocation mode. When changing installation or deployment, verify the README commands and instructions.
+
 ## Skill Authoring Guidelines
 
 CX1 skills must set `interface.display_name` in `agents/openai.yaml` to `cx1: <Readable Name>`; use spaces between words and model version numbers, preserving standard capitalization such as `AFK`, `ChatGPT`, and `ASD-STE100` (for example, `cx1: Yuque` or `cx1: Sub Sol 6.1`).
